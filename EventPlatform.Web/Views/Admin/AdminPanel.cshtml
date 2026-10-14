@@ -1,0 +1,103 @@
+﻿@using System.Security.Claims
+@model AdminPanelViewModel
+
+@{
+    ViewData["Title"] = "Admin Paneli";
+    var activeTab = ViewData["ActiveTab"] as string ?? "users";
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+
+<h2 class="mb-3">Admin Paneli</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(activeTab == "users" ? "active" : "")"
+           asp-action="AdminPanel" asp-route-tab="users">Kullanıcılar</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(activeTab == "events" ? "active" : "")"
+           asp-action="AdminPanel" asp-route-tab="events">Etkinlikler</a>
+    </li>
+</ul>
+
+@if (activeTab == "users")
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr><th>Kullanıcı adı</th><th>E-posta</th><th>Rol</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Model.Users)
+            {
+                <tr>
+                    <td>@u.Username</td>
+                    <td>@u.Email</td>
+                    <td>@u.Role</td>
+                    <td>
+                        @if (u.Userid.ToString() == currentUserId)
+                        {
+                            <span class="text-muted">(siz)</span>
+                        }
+                        else
+                        {
+                            <form asp-action="DeleteUser" asp-route-id="@u.Userid" method="post" class="d-inline"
+                                  onsubmit="return confirm('Bu kullanıcı silinsin mi?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr><th>Etkinlik</th><th>Oluşturan</th><th>Tarih</th><th>Durum</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var e in Model.Events)
+            {
+                <tr>
+                    <td>@e.Eventname</td>
+                    <td>@e.CreatorUsername</td>
+                    <td>@e.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>
+                        @if (e.Isapproved)
+                        {
+                            <span class="badge bg-success">Onaylı</span>
+                        }
+                        else
+                        {
+
+                            <span class="badge bg-warning text-dark">Bekliyor</span>
+                        }
+                    </td>
+                    <td>
+                        @if (!e.Isapproved)
+                        {
+                            <form asp-action="ApproveEvent" asp-route-id="@e.Eventid" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-success btn-sm">Onayla</button>
+                            </form>
+                        }
+                        <form asp-action="DeleteEvent" asp-route-id="@e.Eventid" method="post" class="d-inline"
+                              onsubmit="return confirm('Bu etkinlik silinsin mi?');">
+                            <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using EventPlatform.Web.Models;
+using EventPlatform.Web.Models.ViewModels;
+
 
 namespace EventPlatform.Web.Controllers;
 

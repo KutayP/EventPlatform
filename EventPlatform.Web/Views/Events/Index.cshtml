@@ -1,0 +1,30 @@
+﻿@model List<EventListItemViewModel>
+
+@{
+    ViewData["Title"] = "Etkinlikler";
+}
+
+<h2 class="mb-4">Yaklaşan etkinlikler</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Şu anda gösterilecek etkinlik yok.</div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @foreach (var e in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <span class="badge bg-secondary mb-2">@e.Category</span>
+                        <h5 class="card-title">@e.Eventname</h5>
+                        <p class="card-text mb-1">📍 @e.Location</p>
+                        <p class="card-text text-muted">🗓 @e.Date.ToString("dd.MM.yyyy HH:mm")</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
