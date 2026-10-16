@@ -16,6 +16,7 @@
                 <a class="nav-link text-dark" asp-controller="Admin" asp-action="AdminPanel">Admin</a>
             </li>
         }
+        @await Component.InvokeAsync("UnreadMessages")
         <li class="nav-item">
             <span class="nav-link text-dark">Merhaba, @User.Identity.Name</span>
         </li>

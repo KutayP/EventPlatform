@@ -113,9 +113,41 @@ public class EventsController : Controller
 
             latest.Reverse(); // ekranda eskiden yeniye
             vm.Messages = latest;
+
+            // Sohbet ekrana geldi: bu etkinlik için okundu işaretle (navbar rozeti buna bakar).
+            await MarkReadAsync(id, userId);
         }
 
         return View(vm);
+    }
+
+    // (userid, eventid) için "en son ne zaman okudu" değerini yazar (yoksa ekler).
+    private async Task MarkReadAsync(int eventId, int userId)
+    {
+        var now = NowForDb();
+
+        var updated = await _context.Eventreadstatuses
+            .Where(r => r.Userid == userId && r.Eventid == eventId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Lastreadat, now));
+
+        if (updated == 0)
+        {
+            _context.Eventreadstatuses.Add(new Eventreadstatus
+            {
+                Userid = userId,
+                Eventid = eventId,
+                Lastreadat = now
+            });
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Aynı anda başka bir istek satırı eklediyse sorun değil.
+            }
+        }
     }
 
     // ---------- OLUŞTUR ----------

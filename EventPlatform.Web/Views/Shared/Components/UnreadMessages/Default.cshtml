@@ -1,0 +1,36 @@
+﻿@using EventPlatform.Web.Models.ViewModels
+@model List<UnreadEventItem>
+
+@{
+    var total = Model.Sum(x => x.Count);
+}
+
+<li class="nav-item dropdown">
+    <a class="nav-link text-dark dropdown-toggle" href="#" role="button"
+       data-bs-toggle="dropdown" aria-expanded="false">
+        💬 Mesajlar
+        @if (total > 0)
+        {
+            <span class="badge rounded-pill bg-danger">@(total > 99 ? "99+" : total.ToString())</span>
+        }
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end">
+        @if (Model.Count == 0)
+        {
+            <li><span class="dropdown-item-text text-muted">Okunmamış mesaj yok</span></li>
+        }
+        else
+        {
+            @foreach (var item in Model)
+            {
+                <li>
+                    <a class="dropdown-item d-flex justify-content-between align-items-center gap-3"
+                       asp-controller="Events" asp-action="Details" asp-route-id="@item.Eventid">
+                        <span>@item.Eventname</span>
+                        <span class="badge bg-danger">@item.Count</span>
+                    </a>
+                </li>
+            }
+        }
+    </ul>
+</li>

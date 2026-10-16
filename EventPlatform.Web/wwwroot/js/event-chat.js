@@ -21,6 +21,12 @@
         box.scrollTop = box.scrollHeight;
     }
 
+    function markRead() {
+        if (connection.state === signalR.HubConnectionState.Connected) {
+            connection.invoke("MarkRead", eventId).catch((err) => console.warn(err));
+        }
+    }
+
     // Metinler textContent ile yazılır: mesajın içindeki HTML çalıştırılamaz (XSS koruması).
     // Hem geçmiş hem canlı mesajlar bu fonksiyonla çizilir, görünüm her zaman aynıdır.
     function addMessage(m) {
@@ -64,9 +70,13 @@
         addMessage(m);
         if (nearBottom || m.senderId === me) scrollToEnd();
 
-        if (document.visibilityState === "visible") {
-            connection.invoke("MarkRead", eventId).catch((err) => console.warn(err));
-        }
+        // Sekme açıksa okundu say; arka plandaysa okunmamış kalsın.
+        if (document.visibilityState === "visible") markRead();
+    });
+
+    // Sekmeye geri dönünce, arkada biriken mesajlar okundu olsun.
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") markRead();
     });
 
     connection.onreconnecting(() => setStatus("yeniden bağlanıyor…", "warning"));
