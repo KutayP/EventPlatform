@@ -19,7 +19,9 @@ else
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
                         <span class="badge bg-secondary mb-2">@e.Category</span>
-                        <h5 class="card-title">@e.Eventname</h5>
+                        <h5 class="card-title">
+                            <a asp-action="Details" asp-route-id="@e.Eventid" class="text-decoration-none text-dark stretched-link">@e.Eventname</a>
+                        </h5>
                         <p class="card-text mb-1">📍 @e.Location</p>
                         <p class="card-text text-muted">🗓 @e.Date.ToString("dd.MM.yyyy HH:mm")</p>
                     </div>

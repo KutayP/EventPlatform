@@ -18,6 +18,8 @@ public class AccountController : Controller
         _context = context;
     }
 
+    // ---------- KAYIT ----------
+
     [HttpGet]
     public IActionResult Register() => View();
 
@@ -28,37 +30,50 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
+        var username = model.Username.Trim();
         var email = model.Email.Trim().ToLowerInvariant();
 
-        if (await _context.Users.AnyAsync(u => u.Username == model.Username))
-        {
-            ModelState.AddModelError(nameof(model.Username), "Bu kullanıcı adı alınmış.");
-            return View(model);
-        }
+        if (await _context.Users.AnyAsync(u => u.Username == username))
+            ModelState.AddModelError(nameof(model.Username), "Bu kullanıcı adı zaten alınmış.");
 
         if (await _context.Users.AnyAsync(u => u.Email == email))
-        {
-            ModelState.AddModelError(nameof(model.Email), "Bu e-posta zaten kayıtlı.");
+            ModelState.AddModelError(nameof(model.Email), "Bu e-posta adresi zaten kayıtlı.");
+
+        if (!ModelState.IsValid)
             return View(model);
-        }
 
         var user = new User
         {
-            Username = model.Username,
+            Username = username,
             Email = email,
             Password = BCrypt.Net.BCrypt.HashPassword(model.Password),
-            Firstname = model.FirstName,
-            Lastname = model.LastName,
+            Firstname = model.FirstName.Trim(),
+            Lastname = model.LastName.Trim(),
             Birthdate = model.BirthDate,
             Gender = model.Gender,
-            Role = "User"
+            Role = "User" // rol asla formdan gelmez
         };
 
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
 
-        return RedirectToAction("Login");
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Aynı anda gelen iki kayıt isteğinde UNIQUE kısıtlaması son savunma hattı.
+            ModelState.AddModelError(string.Empty, "Kayıt oluşturulamadı. Kullanıcı adı veya e-posta kullanımda olabilir.");
+            return View(model);
+        }
+
+        // Kayıt sonrası kullanıcıyı doğrudan giriş yapmış say.
+        await SignInUserAsync(user, isPersistent: false);
+
+        return RedirectToAction("Index", "Home");
     }
+
+    // ---------- GİRİŞ / ÇIKIŞ ----------
 
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
@@ -79,34 +94,19 @@ public class AccountController : Controller
         var identifier = model.Identifier.Trim();
         var emailCandidate = identifier.ToLowerInvariant();
 
-        var user = await _context.Users.FirstOrDefaultAsync(u =>
-            u.Username == identifier || u.Email == emailCandidate);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == identifier || u.Email == emailCandidate);
 
-        // Kullanıcı yok ya da şifre yanlış: aynı mesaj, hangisinin olduğunu belli etmiyoruz.
+        // Kullanıcı yok / şifre yanlış için aynı mesaj: hesap varlığı sızdırılmaz.
         if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
         {
             ModelState.AddModelError(string.Empty, "Kullanıcı adı/e-posta veya şifre hatalı.");
             return View(model);
         }
 
-        var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, user.Userid.ToString()),
-        new(ClaimTypes.Name, user.Username),
-        new(ClaimTypes.Role, user.Role)
-    };
+        await SignInUserAsync(user, model.RememberMe);
 
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-        var authProperties = new AuthenticationProperties { IsPersistent = model.RememberMe };
-        if (model.RememberMe)
-            authProperties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30);
-
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity),
-            authProperties);
-
+        // Sadece site içi adreslere yönlendir (open redirect koruması).
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return LocalRedirect(returnUrl);
 
@@ -123,4 +123,28 @@ public class AccountController : Controller
 
     [HttpGet]
     public IActionResult AccessDenied() => View();
+
+    // ---------- YARDIMCI ----------
+
+    // Giriş ve kayıt aynı cookie oluşturma kodunu kullanır.
+    private async Task SignInUserAsync(User user, bool isPersistent)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Userid.ToString()),
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Role, user.Role)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        var props = new AuthenticationProperties { IsPersistent = isPersistent };
+        if (isPersistent)
+            props.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30);
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            props);
+    }
 }

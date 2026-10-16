@@ -1,0 +1,59 @@
+﻿@model EventDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Eventname;
+}
+
+<a asp-action="Index" class="btn btn-link px-0 mb-3">&larr; Etkinliklere dön</a>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <span class="badge bg-secondary mb-2">@Model.Category</span>
+        <h2 class="card-title">@Model.Eventname</h2>
+
+        <p class="text-muted mb-1">🗓 @Model.Date.ToString("dd.MM.yyyy HH:mm") · Süre: @Model.Duration</p>
+        <p class="mb-1">📍 @Model.Location</p>
+        <p class="mb-3">👤 Oluşturan: @Model.CreatorUsername · 👥 @Model.ParticipantCount katılımcı</p>
+
+        <h5>Açıklama</h5>
+        <p>@Model.Description</p>
+
+        <hr />
+
+        @if (Model.IsPast)
+        {
+            <span class="text-muted">Bu etkinlik sona erdi.</span>
+        }
+        else if (!User.Identity!.IsAuthenticated)
+        {
+            <a asp-controller="Account" asp-action="Login"
+               asp-route-returnUrl="@Url.Action("Details", "Events", new { id = Model.Eventid })"
+               class="btn btn-primary">Katılmak için giriş yapın</a>
+        }
+        else if (Model.IsCreator)
+        {
+            <span class="badge bg-info text-dark">Bu etkinliği siz oluşturdunuz</span>
+        }
+        else if (Model.IsParticipant)
+        {
+            <form asp-action="Leave" asp-route-id="@Model.Eventid" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger">Etkinlikten ayrıl</button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="Join" asp-route-id="@Model.Eventid" method="post" class="d-inline">
+                <button type="submit" class="btn btn-success">Katıl</button>
+            </form>
+        }
+    </div>
+</div>

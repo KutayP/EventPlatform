@@ -1,5 +1,14 @@
-﻿<ul class="navbar-nav">
-    @if (User.Identity?.IsAuthenticated == true)
+﻿@{
+    // Bulunduğumuz sayfa: giriş sonrası buraya dönülecek.
+    // Giriş/Kayıt sayfalarındaysak dönülecek bir yer vermiyoruz (döngüye girmesin).
+    var currentPath = Context.Request.Path.Value ?? "/";
+    var onAuthPage = currentPath.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase)
+                  || currentPath.StartsWith("/Account/Register", StringComparison.OrdinalIgnoreCase);
+    string? returnUrl = onAuthPage ? null : currentPath + Context.Request.QueryString;
+}
+
+<ul class="navbar-nav ms-auto">
+    @if (User.Identity!.IsAuthenticated)
     {
         @if (User.IsInRole("Admin"))
         {
@@ -11,18 +20,19 @@
             <span class="nav-link text-dark">Merhaba, @User.Identity.Name</span>
         </li>
         <li class="nav-item">
-            <form asp-controller="Account" asp-action="Logout" method="post">
-                <button type="submit" class="nav-link btn btn-link text-dark">Çıkış Yap</button>
+            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                <button type="submit" class="nav-link btn btn-link text-dark">Çıkış yap</button>
             </form>
         </li>
     }
     else
     {
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Giriş Yap</a>
+            <a class="nav-link text-dark" asp-controller="Account" asp-action="Login"
+               asp-route-returnUrl="@returnUrl">Giriş yap</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Kayıt Ol</a>
+            <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Kayıt ol</a>
         </li>
     }
 </ul>
