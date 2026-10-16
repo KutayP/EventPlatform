@@ -19,6 +19,8 @@ public class EventsController : Controller
         "Cooking", "Reading", "Gaming", "Fitness", "Photography"
     };
 
+    private const int ChatHistoryLimit = 50;
+
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
 
@@ -88,6 +90,31 @@ public class EventsController : Controller
             return NotFound();
 
         vm.IsPast = vm.Date < NowForDb();
+        vm.CurrentUserId = userId;
+
+        // Sohbet geçmişi sadece etkinliğin sahibine ve katılımcılarına gösterilir.
+        if (vm.CanChat)
+        {
+            var latest = await _context.Messages
+                .AsNoTracking()
+                .Where(m => m.Eventid == id)
+                .OrderByDescending(m => m.Senttime)
+                .ThenByDescending(m => m.Messageid)
+                .Take(ChatHistoryLimit)
+                .Select(m => new ChatMessageViewModel
+                {
+                    Messageid = m.Messageid,
+                    SenderId = m.Senderid,
+                    SenderUsername = m.Sender.Username,
+                    Text = m.Messagetext,
+                    SentAt = m.Senttime ?? DateTime.MinValue
+                })
+                .ToListAsync();
+
+            latest.Reverse(); // ekranda eskiden yeniye
+            vm.Messages = latest;
+        }
+
         return View(vm);
     }
 

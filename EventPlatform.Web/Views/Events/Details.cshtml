@@ -61,6 +61,49 @@
     </div>
 </div>
 
+@if (Model.CanChat)
+{
+    // Geçmiş mesajlar JSON olarak verilir, ekrana JS çizer (canlı mesajlarla aynı kod).
+    // JsonSerializer varsayılan olarak <, >, & karakterlerini kaçırır: script etiketi içinde güvenlidir.
+    var historyJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Messages.Select(m => new
+        {
+            id = m.Messageid,
+            senderId = m.SenderId,
+            sender = m.SenderUsername,
+            text = m.Text,
+            sentAt = m.SentAt.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        }));
+
+    <div class="card shadow-sm mt-4" id="chatCard" data-event-id="@Model.Eventid" data-user-id="@Model.CurrentUserId">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>💬 Etkinlik sohbeti</span>
+            <span id="chatStatus" class="badge bg-secondary">bağlanıyor…</span>
+        </div>
+
+        <div class="card-body" id="chatMessages" style="height: 340px; overflow-y: auto;"></div>
+        <script type="application/json" id="chatHistory">@Html.Raw(historyJson)</script>
+
+        <div class="card-footer">
+            <form id="chatForm" class="d-flex gap-2">
+                <input id="chatInput" type="text" class="form-control" maxlength="1000"
+                       autocomplete="off" placeholder="Mesaj yazın…" />
+                <button type="submit" class="btn btn-primary">Gönder</button>
+            </form>
+        </div>
+    </div>
+}
+else if (User.Identity!.IsAuthenticated && !Model.IsPast)
+{
+    <p class="text-muted mt-4">💬 Sohbete katılmak için etkinliğe katılın.</p>
+}
+
 @section Scripts {
     <script src="~/js/local-time.js"></script>
+
+    @if (Model.CanChat)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@@8.0.7/dist/browser/signalr.min.js"></script>
+        <script src="~/js/event-chat.js"></script>
+    }
 }
