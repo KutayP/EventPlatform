@@ -1,5 +1,7 @@
-﻿using System.Security.Claims;
+﻿using System.Globalization;
+using System.Security.Claims;
 using EventPlatform.Web.Models;
+using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +11,21 @@ namespace EventPlatform.Web.Controllers;
 
 public class EventsController : Controller
 {
-    private readonly AppDbContext _context;
+    // Veritabanındaki interests tablosuyla aynı değerler.
+    // TODO: profil/ilgi alanı modülünde tablodan okunacak.
+    private static readonly string[] Categories =
+    {
+        "Music", "Sports", "Art", "Technology", "Travel",
+        "Cooking", "Reading", "Gaming", "Fitness", "Photography"
+    };
 
-    public EventsController(AppDbContext context)
+    private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
+
+    public EventsController(AppDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     // Giriş yapmamışsa 0 döner (veritabanında 0 id'li kullanıcı yok).
@@ -23,6 +35,8 @@ public class EventsController : Controller
     // Sütun "timestamp without time zone" olduğu için Kind'ı Unspecified yapıyoruz.
     private static DateTime NowForDb() =>
         DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+
+    // ---------- LİSTE ----------
 
     public async Task<IActionResult> Index()
     {
@@ -44,6 +58,8 @@ public class EventsController : Controller
 
         return View(events);
     }
+
+    // ---------- DETAY ----------
 
     public async Task<IActionResult> Details(int id)
     {
@@ -74,6 +90,82 @@ public class EventsController : Controller
         vm.IsPast = vm.Date < NowForDb();
         return View(vm);
     }
+
+    // ---------- OLUŞTUR ----------
+
+    [Authorize]
+    [HttpGet]
+    public IActionResult Create()
+    {
+        FillCreateViewData();
+        return View(new EventCreateViewModel());
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(EventCreateViewModel model)
+    {
+        if (!Categories.Contains(model.Category))
+            ModelState.AddModelError(nameof(model.Category), "Geçerli bir kategori seçin.");
+
+        // Koordinatlar: nokta ondalık ayracıyla gelir, kültürden bağımsız ayrıştır.
+        double lat = 0, lng = 0;
+        var coordsOk =
+            double.TryParse(model.Latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out lat) &&
+            double.TryParse(model.Longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out lng) &&
+            lat is >= -90 and <= 90 &&
+            lng is >= -180 and <= 180;
+
+        if (!coordsOk)
+            ModelState.AddModelError(nameof(model.Location), "Haritadan bir konum seçin.");
+
+        // Yerel saat -> UTC. getTimezoneOffset() = UTC - yerel (dk), yani UTC = yerel + offset.
+        DateTime dateUtc = default;
+        if (model.Date.HasValue)
+        {
+            dateUtc = DateTime.SpecifyKind(
+                model.Date.Value.AddMinutes(model.TimezoneOffsetMinutes),
+                DateTimeKind.Unspecified);
+
+            if (dateUtc <= NowForDb())
+                ModelState.AddModelError(nameof(model.Date), "Etkinlik tarihi gelecekte olmalı.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            FillCreateViewData();
+            return View(model);
+        }
+
+        var ev = new Event
+        {
+            Createdbyuserid = CurrentUserId,
+            Eventname = model.Eventname.Trim(),
+            Description = model.Description.Trim(),
+            Date = dateUtc,
+            Duration = model.Duration,
+            Location = model.Location!.Trim(),
+            Category = model.Category,
+            Latitude = lat,
+            Longitude = lng,
+            Isapproved = false // admin onayından sonra yayınlanır
+        };
+
+        _context.Events.Add(ev);
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = "Etkinliğiniz oluşturuldu. Admin onayından sonra yayınlanacak.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private void FillCreateViewData()
+    {
+        ViewData["Categories"] = Categories;
+        ViewData["MapsApiKey"] = _configuration["GoogleMaps:ApiKey"];
+    }
+
+    // ---------- KATIL / AYRIL ----------
 
     [Authorize]
     [HttpPost]

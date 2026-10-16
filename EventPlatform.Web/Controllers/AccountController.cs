@@ -21,7 +21,7 @@ public class AccountController : Controller
     // ---------- KAYIT ----------
 
     [HttpGet]
-    public IActionResult Register() => View();
+    public IActionResult Register() => View(new RegisterViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -31,13 +31,18 @@ public class AccountController : Controller
             return View(model);
 
         var username = model.Username.Trim();
+        var usernameLower = username.ToLowerInvariant();
         var email = model.Email.Trim().ToLowerInvariant();
 
-        if (await _context.Users.AnyAsync(u => u.Username == username))
+        // Kullanıcı adı büyük/küçük harf duyarsız benzersiz olmalı.
+        if (await _context.Users.AnyAsync(u => u.Username.ToLower() == usernameLower))
             ModelState.AddModelError(nameof(model.Username), "Bu kullanıcı adı zaten alınmış.");
 
         if (await _context.Users.AnyAsync(u => u.Email == email))
             ModelState.AddModelError(nameof(model.Email), "Bu e-posta adresi zaten kayıtlı.");
+
+        if (model.BirthDate.Date > DateTime.Today || model.BirthDate.Year < 1900)
+            ModelState.AddModelError(nameof(model.BirthDate), "Geçerli bir doğum tarihi girin.");
 
         if (!ModelState.IsValid)
             return View(model);
@@ -91,11 +96,11 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        var identifier = model.Identifier.Trim();
-        var emailCandidate = identifier.ToLowerInvariant();
+        // Kullanıcı adı ve e-posta büyük/küçük harf duyarsız, şifre duyarlı.
+        var identifierLower = model.Identifier.Trim().ToLowerInvariant();
 
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == identifier || u.Email == emailCandidate);
+            .FirstOrDefaultAsync(u => u.Username.ToLower() == identifierLower || u.Email == identifierLower);
 
         // Kullanıcı yok / şifre yanlış için aynı mesaj: hesap varlığı sızdırılmaz.
         if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))

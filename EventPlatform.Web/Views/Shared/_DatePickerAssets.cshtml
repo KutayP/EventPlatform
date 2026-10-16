@@ -1,0 +1,33 @@
+﻿@* Site genelinde tarih seçici.
+   Kullanım: <input data-datepicker="datetime"> veya <input data-datepicker="birthdate">
+   Ekranda gün.ay.yıl görünür, forma giden değer ISO (yıl-ay-gün) olur. *@
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/tr.js"></script>
+
+<script>
+    document.querySelectorAll("input[data-datepicker]").forEach((el) => {
+        const common = { locale: "tr", altInput: true, altInputClass: "form-control" };
+
+        if (el.dataset.datepicker === "datetime") {
+            flatpickr(el, {
+                ...common,
+                enableTime: true,
+                time_24hr: true,
+                minuteIncrement: 5,
+                minDate: "today",
+                dateFormat: "Y-m-d\\TH:i",
+                altFormat: "d.m.Y H:i"
+            });
+        } else if (el.dataset.datepicker === "birthdate") {
+            flatpickr(el, {
+                ...common,
+                allowInput: true, // yıl seçmek için elle yazılabilsin
+                maxDate: "today",
+                dateFormat: "Y-m-d",
+                altFormat: "d.m.Y"
+            });
+        }
+    });
+</script>

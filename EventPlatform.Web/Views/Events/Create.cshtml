@@ -1,0 +1,168 @@
+﻿@model EventCreateViewModel
+
+@{
+    ViewData["Title"] = "Etkinlik oluştur";
+    var durations = Enumerable.Range(1, 12).Select(h => new SelectListItem($"{h} saat", h.ToString()));
+    var categories = ((IEnumerable<string>)ViewData["Categories"]!).Select(c => new SelectListItem(c, c));
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h2 class="mb-3">Etkinlik oluştur</h2>
+        <p class="text-muted">Etkinliğiniz admin onayından sonra herkese görünür.</p>
+
+        <form asp-action="Create" method="post" id="createForm">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+            <div class="mb-3">
+                <label asp-for="Eventname" class="form-label">Etkinlik adı</label>
+                <input asp-for="Eventname" class="form-control" />
+                <span asp-validation-for="Eventname" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Açıklama</label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Date" class="form-label">Tarih ve saat</label>
+                    <input asp-for="Date" type="text" class="form-control" autocomplete="off"
+                           data-datepicker="datetime"
+                           value="@(Model.Date?.ToString("yyyy-MM-dd'T'HH:mm"))" />
+                    <span asp-validation-for="Date" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Duration" class="form-label">Süre</label>
+                    <select asp-for="Duration" asp-items="durations" class="form-select"></select>
+                    <span asp-validation-for="Duration" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Category" class="form-label">Kategori</label>
+                <select asp-for="Category" asp-items="categories" class="form-select">
+                    <option value="">Kategori seçin</option>
+                </select>
+                <span asp-validation-for="Category" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Konum (haritaya tıklayın)</label>
+                <div id="map" style="height: 380px; border-radius: 8px;"></div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Location" class="form-label">Konum adı / adres</label>
+                <input asp-for="Location" class="form-control" readonly />
+                <span asp-validation-for="Location" class="text-danger"></span>
+            </div>
+
+            <input asp-for="Latitude" type="hidden" />
+            <input asp-for="Longitude" type="hidden" />
+            <input asp-for="TimezoneOffsetMinutes" type="hidden" />
+
+            <div class="d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">Vazgeç</a>
+                <button type="submit" class="btn btn-primary">Etkinliği oluştur</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_DatePickerAssets" />
+
+    <script>
+        let map, marker, geocoder, Place;
+
+        function placeMarker(latLng) {
+            if (!marker) {
+                marker = new google.maps.Marker({ position: latLng, map: map, draggable: true });
+                marker.addListener("dragend", () => fillLocation(marker.getPosition(), null));
+            } else {
+                marker.setPosition(latLng);
+            }
+        }
+
+        async function fillLocation(latLng, placeId) {
+            const lat = latLng.lat().toFixed(6);
+            const lng = latLng.lng().toFixed(6);
+            document.getElementById("Latitude").value = lat;
+            document.getElementById("Longitude").value = lng;
+            const field = document.getElementById("Location");
+
+            // 1) İsimli bir yere (restoran, okul, park...) tıklandıysa adını ve adresini al.
+            if (placeId) {
+                try {
+                    const place = new Place({ id: placeId });
+                    await place.fetchFields({ fields: ["displayName", "formattedAddress"] });
+                    if (place.displayName) {
+                        field.value = place.formattedAddress
+                            ? place.displayName + " – " + place.formattedAddress
+                            : place.displayName;
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("Places API hatası:", err);
+                }
+            }
+
+            // 2) İsimsiz bir yerse sadece adres.
+            try {
+                const res = await geocoder.geocode({ location: latLng });
+                if (res.results && res.results[0]) {
+                    field.value = res.results[0].formatted_address;
+                    return;
+                }
+            } catch (err) {
+                console.error("Geocoding API hatası:", err);
+            }
+
+            // 3) Google'dan bir şey alınamadıysa koordinatı yaz (hata konsolda görünür).
+            field.value = lat + ", " + lng;
+        }
+
+        async function onMapClick(e) {
+            if (e.placeId) e.stop(); // isimli yerlerde Google'ın kendi bilgi penceresi açılmasın
+            placeMarker(e.latLng);
+            await fillLocation(e.latLng, e.placeId);
+        }
+
+        async function initMap() {
+            try {
+                ({ Place } = await google.maps.importLibrary("places"));
+            } catch (err) {
+                console.warn("Places kütüphanesi yüklenemedi:", err);
+            }
+
+            geocoder = new google.maps.Geocoder();
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 12,
+                center: { lat: 40.7654, lng: 29.9408 } // Kocaeli
+            });
+            map.addListener("click", onMapClick);
+
+            // Doğrulama hatasıyla form geri geldiyse seçili konumu tekrar göster.
+            const lat = parseFloat(document.getElementById("Latitude").value);
+            const lng = parseFloat(document.getElementById("Longitude").value);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                const pos = new google.maps.LatLng(lat, lng);
+                map.setCenter(pos);
+                placeMarker(pos);
+            }
+        }
+
+        // Seçilen tarih için tarayıcının UTC farkını gönder (yaz/kış saati dahil).
+        document.getElementById("createForm").addEventListener("submit", () => {
+            const v = document.getElementById("Date").value;
+            const d = v ? new Date(v) : new Date();
+            document.getElementById("TimezoneOffsetMinutes").value = d.getTimezoneOffset();
+        });
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=@ViewData["MapsApiKey"]&callback=initMap&loading=async" async defer></script>
+}

@@ -4,7 +4,22 @@
     ViewData["Title"] = "Etkinlikler";
 }
 
-<h2 class="mb-4">Yaklaşan etkinlikler</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Yaklaşan etkinlikler</h2>
+    @if (User.Identity!.IsAuthenticated)
+    {
+        <a asp-action="Create" class="btn btn-primary">Etkinlik oluştur</a>
+    }
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
 
 @if (!Model.Any())
 {
@@ -23,10 +38,14 @@ else
                             <a asp-action="Details" asp-route-id="@e.Eventid" class="text-decoration-none text-dark stretched-link">@e.Eventname</a>
                         </h5>
                         <p class="card-text mb-1">📍 @e.Location</p>
-                        <p class="card-text text-muted">🗓 @e.Date.ToString("dd.MM.yyyy HH:mm")</p>
+                        <p class="card-text text-muted">🗓 <time class="js-local" datetime="@(e.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@e.Date.ToString("dd.MM.yyyy HH:mm") UTC</time></p>
                     </div>
                 </div>
             </div>
         }
     </div>
+}
+
+@section Scripts {
+    <script src="~/js/local-time.js"></script>
 }
