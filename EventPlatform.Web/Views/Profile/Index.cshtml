@@ -1,0 +1,134 @@
+﻿@model ProfileViewModel
+
+@{
+    ViewData["Title"] = "Profilim";
+    var genders = new[]
+{
+    new SelectListItem("Erkek", "Male"),
+    new SelectListItem("Kadın", "Female"),
+    new SelectListItem("Non-binary", "NonBinary"),
+    new SelectListItem("Diğer", "Other")
+};
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm text-center">
+            <div class="card-body">
+                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width: 84px; height: 84px; font-size: 2rem;">
+                    @Model.Username.Substring(0, 1).ToUpperInvariant()
+                </div>
+                <h4 class="mb-0">@Model.InfoForm.Firstname @Model.InfoForm.Lastname</h4>
+                <div class="text-muted">@@@Model.Username</div>
+                <div class="text-muted small">@Model.Email</div>
+
+                <hr />
+
+                <div class="row">
+                    <div class="col">
+                        <div class="fs-4 fw-semibold">@Model.CreatedCount</div>
+                        <div class="small text-muted">Oluşturduğum</div>
+                    </div>
+                    <div class="col">
+                        <div class="fs-4 fw-semibold">@Model.JoinedCount</div>
+                        <div class="small text-muted">Katıldığım</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4" id="bilgiler">
+            <div class="card-header">Kişisel bilgiler</div>
+            <div class="card-body">
+                <form asp-action="UpdateInfo" method="post">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="InfoForm.Firstname" class="form-label">Ad</label>
+                            <input asp-for="InfoForm.Firstname" class="form-control" />
+                            <span asp-validation-for="InfoForm.Firstname" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="InfoForm.Lastname" class="form-label">Soyad</label>
+                            <input asp-for="InfoForm.Lastname" class="form-control" />
+                            <span asp-validation-for="InfoForm.Lastname" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="InfoForm.Birthdate" class="form-label">Doğum tarihi</label>
+                            <input asp-for="InfoForm.Birthdate" type="text" class="form-control" autocomplete="off"
+                                   data-datepicker="birthdate"
+                                   value="@(Model.InfoForm.Birthdate == default ? "" : Model.InfoForm.Birthdate.ToString("yyyy-MM-dd"))" />
+                            <span asp-validation-for="InfoForm.Birthdate" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="InfoForm.Gender" class="form-label">Cinsiyet</label>
+                            <select asp-for="InfoForm.Gender" asp-items="genders" class="form-select">
+                                <option value="">Seçin</option>
+                            </select>
+                            <span asp-validation-for="InfoForm.Gender" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <p class="text-muted small">Kullanıcı adı ve e-posta değiştirilemez.</p>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4" id="ilgi-alanlari">
+            <div class="card-header">İlgi alanları</div>
+            <div class="card-body">
+                <form asp-action="UpdateInterests" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                    <div class="mb-3">
+                        <partial name="_InterestPicker" model="Model.Interests" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm" id="sifre">
+            <div class="card-header">Şifre değiştir</div>
+            <div class="card-body">
+                <form asp-action="ChangePassword" method="post">
+                    <div class="mb-3">
+                        <label asp-for="PasswordForm.CurrentPassword" class="form-label">Mevcut şifre</label>
+                        <input asp-for="PasswordForm.CurrentPassword" class="form-control" autocomplete="current-password" />
+                        <span asp-validation-for="PasswordForm.CurrentPassword" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="PasswordForm.NewPassword" class="form-label">Yeni şifre (en az 8 karakter)</label>
+                            <input asp-for="PasswordForm.NewPassword" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="PasswordForm.NewPassword" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="PasswordForm.ConfirmPassword" class="form-label">Yeni şifre (tekrar)</label>
+                            <input asp-for="PasswordForm.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="PasswordForm.ConfirmPassword" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Şifreyi değiştir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_DatePickerAssets" />
+}

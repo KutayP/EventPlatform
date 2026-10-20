@@ -1,0 +1,17 @@
+﻿@model List<InterestOption>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted mb-0">Henüz tanımlı ilgi alanı yok.</p>
+}
+else
+{
+    <div class="d-flex flex-wrap gap-2">
+        @foreach (var i in Model)
+        {
+            <input type="checkbox" class="btn-check" name="SelectedInterestIds"
+                   id="interest-@i.Interestid" value="@i.Interestid" checked="@i.Selected" autocomplete="off" />
+            <label class="btn btn-outline-primary btn-sm rounded-pill" for="interest-@i.Interestid">@i.Interestname</label>
+        }
+    </div>
+}

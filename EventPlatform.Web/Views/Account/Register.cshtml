@@ -3,12 +3,12 @@
 @{
     ViewData["Title"] = "Kayıt ol";
     var genders = new[]
-    {
-        new SelectListItem("Erkek", "Male"),
-        new SelectListItem("Kadın", "Female"),
-        new SelectListItem("İkili olmayan", "NonBinary"),
-        new SelectListItem("Diğer", "Other")
-    };
+{
+    new SelectListItem("Erkek", "Male"),
+    new SelectListItem("Kadın", "Female"),
+    new SelectListItem("Non-binary", "NonBinary"),
+    new SelectListItem("Diğer", "Other")
+};
 }
 
 <div class="row justify-content-center">
@@ -64,6 +64,12 @@
                     </select>
                     <span asp-validation-for="Gender" class="text-danger"></span>
                 </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">İlgi alanların <span class="text-muted">(isteğe bağlı)</span></label>
+                <partial name="_InterestPicker" model="Model.Interests" />
+                <span asp-validation-for="SelectedInterestIds" class="text-danger"></span>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Kayıt ol</button>

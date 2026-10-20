@@ -5,25 +5,40 @@
     var onAuthPage = currentPath.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase)
                   || currentPath.StartsWith("/Account/Register", StringComparison.OrdinalIgnoreCase);
     string? returnUrl = onAuthPage ? null : currentPath + Context.Request.QueryString;
+
+    var displayName = User.Identity?.Name ?? "?";
+    var initial = displayName.Length > 0 ? displayName.Substring(0, 1).ToUpperInvariant() : "?";
 }
 
-<ul class="navbar-nav ms-auto">
+<ul class="navbar-nav ms-auto align-items-lg-center">
     @if (User.Identity!.IsAuthenticated)
     {
-        @if (User.IsInRole("Admin"))
-        {
-            <li class="nav-item">
-                <a class="nav-link text-dark" asp-controller="Admin" asp-action="AdminPanel">Admin</a>
-            </li>
-        }
         @await Component.InvokeAsync("UnreadMessages")
-        <li class="nav-item">
-            <span class="nav-link text-dark">Merhaba, @User.Identity.Name</span>
-        </li>
-        <li class="nav-item">
-            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                <button type="submit" class="nav-link btn btn-link text-dark">Çıkış yap</button>
-            </form>
+
+        <li class="nav-item dropdown">
+            <a class="nav-link text-dark dropdown-toggle d-flex align-items-center gap-2" href="#" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold"
+                      style="width: 32px; height: 32px; font-size: 0.9rem;">@initial</span>
+                <span>@displayName</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" asp-controller="Profile" asp-action="Index">Profilim</a>
+                </li>
+                @if (User.IsInRole("Admin"))
+                {
+                    <li>
+                        <a class="dropdown-item" asp-controller="Admin" asp-action="AdminPanel">Admin paneli</a>
+                    </li>
+                }
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="dropdown-item">Çıkış yap</button>
+                    </form>
+                </li>
+            </ul>
         </li>
     }
     else

@@ -11,14 +11,6 @@ namespace EventPlatform.Web.Controllers;
 
 public class EventsController : Controller
 {
-    // Veritabanındaki interests tablosuyla aynı değerler.
-    // TODO: profil/ilgi alanı modülünde tablodan okunacak.
-    private static readonly string[] Categories =
-    {
-        "Music", "Sports", "Art", "Technology", "Travel",
-        "Cooking", "Reading", "Gaming", "Fitness", "Photography"
-    };
-
     private const int ChatHistoryLimit = 50;
 
     private readonly AppDbContext _context;
@@ -37,6 +29,14 @@ public class EventsController : Controller
     // Sütun "timestamp without time zone" olduğu için Kind'ı Unspecified yapıyoruz.
     private static DateTime NowForDb() =>
         DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+
+    // Kategoriler = ilgi alanları tablosu (kayıt ve profildeki seçimle aynı kaynak).
+    private Task<List<string>> GetCategoriesAsync() =>
+        _context.Interests
+            .AsNoTracking()
+            .OrderBy(i => i.Interestname)
+            .Select(i => i.Interestname)
+            .ToListAsync();
 
     // ---------- LİSTE ----------
 
@@ -154,9 +154,9 @@ public class EventsController : Controller
 
     [Authorize]
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        FillCreateViewData();
+        await FillCreateViewDataAsync();
         return View(new EventCreateViewModel());
     }
 
@@ -165,7 +165,8 @@ public class EventsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EventCreateViewModel model)
     {
-        if (!Categories.Contains(model.Category))
+        var categories = await GetCategoriesAsync();
+        if (!categories.Contains(model.Category))
             ModelState.AddModelError(nameof(model.Category), "Geçerli bir kategori seçin.");
 
         // Koordinatlar: nokta ondalık ayracıyla gelir, kültürden bağımsız ayrıştır.
@@ -193,7 +194,7 @@ public class EventsController : Controller
 
         if (!ModelState.IsValid)
         {
-            FillCreateViewData();
+            await FillCreateViewDataAsync(categories);
             return View(model);
         }
 
@@ -218,9 +219,9 @@ public class EventsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private void FillCreateViewData()
+    private async Task FillCreateViewDataAsync(List<string>? categories = null)
     {
-        ViewData["Categories"] = Categories;
+        ViewData["Categories"] = categories ?? await GetCategoriesAsync();
         ViewData["MapsApiKey"] = _configuration["GoogleMaps:ApiKey"];
     }
 

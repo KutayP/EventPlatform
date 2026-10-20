@@ -18,17 +18,29 @@ public class AccountController : Controller
         _context = context;
     }
 
+    // Sütun "timestamp without time zone" olduğu için Kind'ı Unspecified yapıyoruz.
+    private static DateTime NowForDb() =>
+        DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+
     // ---------- KAYIT ----------
 
     [HttpGet]
-    public IActionResult Register() => View(new RegisterViewModel());
+    public async Task<IActionResult> Register()
+    {
+        var model = new RegisterViewModel();
+        await LoadInterestsAsync(model);
+        return View(model);
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (!ModelState.IsValid)
+        {
+            await LoadInterestsAsync(model);
             return View(model);
+        }
 
         var username = model.Username.Trim();
         var usernameLower = username.ToLowerInvariant();
@@ -44,8 +56,24 @@ public class AccountController : Controller
         if (model.BirthDate.Date > DateTime.Today || model.BirthDate.Year < 1900)
             ModelState.AddModelError(nameof(model.BirthDate), "Geçerli bir doğum tarihi girin.");
 
+        // Seçilen ilgi alanları gerçekten tabloda var mı? (istemciye güvenme)
+        var validInterestIds = await _context.Interests
+            .AsNoTracking()
+            .Select(i => i.Interestid)
+            .ToListAsync();
+
+        var selectedIds = model.SelectedInterestIds
+            .Distinct()
+            .ToList();
+
+        if (selectedIds.Any(id => !validInterestIds.Contains(id)))
+            ModelState.AddModelError(nameof(model.SelectedInterestIds), "Geçersiz ilgi alanı seçildi.");
+
         if (!ModelState.IsValid)
+        {
+            await LoadInterestsAsync(model);
             return View(model);
+        }
 
         var user = new User
         {
@@ -59,6 +87,16 @@ public class AccountController : Controller
             Role = "User" // rol asla formdan gelmez
         };
 
+        // Kullanıcı ve ilgi alanları tek SaveChanges içinde, tek işlemde kaydedilir.
+        foreach (var interestId in selectedIds)
+        {
+            user.Userinterests.Add(new Userinterest
+            {
+                Interestid = interestId,
+                Time = NowForDb()
+            });
+        }
+
         _context.Users.Add(user);
 
         try
@@ -69,6 +107,7 @@ public class AccountController : Controller
         {
             // Aynı anda gelen iki kayıt isteğinde UNIQUE kısıtlaması son savunma hattı.
             ModelState.AddModelError(string.Empty, "Kayıt oluşturulamadı. Kullanıcı adı veya e-posta kullanımda olabilir.");
+            await LoadInterestsAsync(model);
             return View(model);
         }
 
@@ -130,6 +169,23 @@ public class AccountController : Controller
     public IActionResult AccessDenied() => View();
 
     // ---------- YARDIMCI ----------
+
+    // Formdaki ilgi alanı kutucuklarını veritabanından doldurur.
+    private async Task LoadInterestsAsync(RegisterViewModel model)
+    {
+        var selected = model.SelectedInterestIds;
+
+        model.Interests = await _context.Interests
+            .AsNoTracking()
+            .OrderBy(i => i.Interestname)
+            .Select(i => new InterestOption
+            {
+                Interestid = i.Interestid,
+                Interestname = i.Interestname,
+                Selected = selected.Contains(i.Interestid)
+            })
+            .ToListAsync();
+    }
 
     // Giriş ve kayıt aynı cookie oluşturma kodunu kullanır.
     private async Task SignInUserAsync(User user, bool isPersistent)
