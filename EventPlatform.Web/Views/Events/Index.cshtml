@@ -1,14 +1,17 @@
-﻿@model List<EventListItemViewModel>
+﻿@model EventIndexViewModel
 
 @{
     ViewData["Title"] = "Etkinlikler";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Yaklaşan etkinlikler</h2>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Etkinlikler</h1>
+        <p class="text-muted mb-0">Yaklaşan etkinlikleri keşfet.</p>
+    </div>
     @if (User.Identity!.IsAuthenticated)
     {
-        <a asp-action="Create" class="btn btn-primary">Etkinlik oluştur</a>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Etkinlik oluştur</a>
     }
 </div>
 
@@ -21,26 +24,71 @@
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
 
-@if (!Model.Any())
+<form method="get" asp-action="Index" class="mb-3">
+    @if (!string.IsNullOrEmpty(Model.Category))
+    {
+        <input type="hidden" name="category" value="@Model.Category" />
+    }
+    <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="search" name="q" value="@Model.Query" class="form-control" maxlength="100"
+               placeholder="Etkinlik adı veya konum ara…" />
+        <button class="btn btn-primary" type="submit">Ara</button>
+    </div>
+</form>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a asp-action="Index" asp-route-q="@Model.Query"
+       class="btn btn-sm rounded-pill @(string.IsNullOrEmpty(Model.Category) ? "btn-primary" : "btn-outline-secondary")">Tümü</a>
+    @foreach (var c in Model.Categories)
+    {
+        <a asp-action="Index" asp-route-q="@Model.Query" asp-route-category="@c"
+           class="btn btn-sm rounded-pill @(c == Model.Category ? "btn-primary" : "btn-outline-secondary")">@CategoryStyle.Label(c)</a>
+    }
+</div>
+
+<p class="text-muted small mb-3">
+    @Model.Events.Count etkinlik
+    @if (Model.HasFilter)
+    {
+        <span> · <a asp-action="Index">Filtreyi temizle</a></span>
+    }
+</p>
+
+@if (Model.Events.Count == 0)
 {
-    <div class="alert alert-info">Şu anda gösterilecek etkinlik yok.</div>
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <div class="step-icon mb-3"><i class="bi bi-calendar-x"></i></div>
+            @if (Model.HasFilter)
+            {
+                <h5>Aramanla eşleşen etkinlik yok</h5>
+                <p class="text-muted mb-3">Farklı bir kelime ya da kategori dene.</p>
+                <a asp-action="Index" class="btn btn-outline-primary">Filtreyi temizle</a>
+            }
+            else
+            {
+                <h5>Henüz yaklaşan etkinlik yok</h5>
+                <p class="text-muted mb-3">İlk etkinliği sen oluşturabilirsin.</p>
+                @if (User.Identity!.IsAuthenticated)
+                {
+                    <a asp-action="Create" class="btn btn-primary">Etkinlik oluştur</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Kayıt ol</a>
+                }
+            }
+        </div>
+    </div>
 }
 else
 {
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        @foreach (var e in Model)
+        @foreach (var e in Model.Events)
         {
             <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <span class="badge bg-secondary mb-2">@e.Category</span>
-                        <h5 class="card-title">
-                            <a asp-action="Details" asp-route-id="@e.Eventid" class="text-decoration-none text-dark stretched-link">@e.Eventname</a>
-                        </h5>
-                        <p class="card-text mb-1">📍 @e.Location</p>
-                        <p class="card-text text-muted">🗓 <time class="js-local" datetime="@(e.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@e.Date.ToString("dd.MM.yyyy HH:mm") UTC</time></p>
-                    </div>
-                </div>
+                <partial name="_EventCard" model="e" />
             </div>
         }
     </div>

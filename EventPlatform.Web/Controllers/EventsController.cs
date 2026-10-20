@@ -12,6 +12,7 @@ namespace EventPlatform.Web.Controllers;
 public class EventsController : Controller
 {
     private const int ChatHistoryLimit = 50;
+    private const int MaxSearchLength = 100;
 
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
@@ -38,15 +39,36 @@ public class EventsController : Controller
             .Select(i => i.Interestname)
             .ToListAsync();
 
+    // LIKE desenindeki özel karakterleri (% _ \) kaçırır: kullanıcı girdisi desen olarak yorumlanmaz.
+    private static string EscapeLike(string value) =>
+        value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
     // ---------- LİSTE ----------
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, string? category)
     {
         var now = NowForDb();
 
-        var events = await _context.Events
+        q = q?.Trim();
+        if (q is { Length: > MaxSearchLength })
+            q = q[..MaxSearchLength];
+
+        var query = _context.Events
             .AsNoTracking()
-            .Where(e => e.Isapproved && e.Date >= now)
+            .Where(e => e.Isapproved && e.Date >= now);
+
+        if (!string.IsNullOrEmpty(q))
+        {
+            var pattern = "%" + EscapeLike(q) + "%";
+            query = query.Where(e =>
+                EF.Functions.ILike(e.Eventname, pattern) ||
+                EF.Functions.ILike(e.Location, pattern));
+        }
+
+        if (!string.IsNullOrEmpty(category))
+            query = query.Where(e => e.Category == category);
+
+        var events = await query
             .OrderBy(e => e.Date)
             .Select(e => new EventListItemViewModel
             {
@@ -54,11 +76,18 @@ public class EventsController : Controller
                 Eventname = e.Eventname,
                 Date = e.Date,
                 Location = e.Location,
-                Category = e.Category
+                Category = e.Category,
+                ParticipantCount = e.Users.Count
             })
             .ToListAsync();
 
-        return View(events);
+        return View(new EventIndexViewModel
+        {
+            Events = events,
+            Query = q,
+            Category = category,
+            Categories = await GetCategoriesAsync()
+        });
     }
 
     // ---------- DETAY ----------
