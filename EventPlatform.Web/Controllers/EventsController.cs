@@ -108,6 +108,8 @@ public class EventsController : Controller
                 Duration = e.Duration,
                 Location = e.Location,
                 Category = e.Category,
+                Latitude = e.Latitude,
+                Longitude = e.Longitude,
                 CreatorUsername = e.Createdbyuser.Username,
                 ParticipantCount = e.Users.Count,
                 IsCreator = e.Createdbyuserid == userId,

@@ -9,6 +9,8 @@ public class EventDetailsViewModel
     public int Duration { get; set; }
     public string Location { get; set; } = "";
     public string Category { get; set; } = "";
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public string CreatorUsername { get; set; } = "";
     public int ParticipantCount { get; set; }
 
