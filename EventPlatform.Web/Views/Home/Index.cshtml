@@ -1,8 +1,96 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model HomeViewModel
+
+@{
+    ViewData["Title"] = "Ana sayfa";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero mb-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <h1 class="display-5 fw-bold mb-3">Etkinlikleri keşfet, katıl, sohbet et.</h1>
+            <p class="lead hero-lead mb-4">
+                İlgi alanına göre etkinlik bul, konumunu haritada gör, katılımcılarla anında sohbet et.
+                Kendi etkinliğini de birkaç dakikada oluştur.
+            </p>
+
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Events" asp-action="Index" class="btn btn-light btn-lg px-4">Etkinlikleri keşfet</a>
+                @if (!User.Identity!.IsAuthenticated)
+                {
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-outline-light btn-lg px-4">Ücretsiz kayıt ol</a>
+                }
+                else
+                {
+                    <a asp-controller="Events" asp-action="Create" class="btn btn-outline-light btn-lg px-4">Etkinlik oluştur</a>
+                }
+            </div>
+
+            <div class="d-flex flex-wrap gap-4 mt-4 hero-stats">
+                <span><i class="bi bi-calendar-event"></i> <strong>@Model.UpcomingEventCount</strong> yaklaşan etkinlik</span>
+                <span><i class="bi bi-people"></i> <strong>@Model.MemberCount</strong> üye</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">Yaklaşan etkinlikler</h2>
+        <a asp-controller="Events" asp-action="Index" class="text-decoration-none">Tümünü gör <i class="bi bi-arrow-right"></i></a>
+    </div>
+
+    @if (Model.Upcoming.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="step-icon mb-3"><i class="bi bi-calendar-plus"></i></div>
+                <h5>Henüz yaklaşan etkinlik yok</h5>
+                <p class="text-muted mb-3">İlk etkinliği sen oluşturabilirsin.</p>
+                @if (User.Identity!.IsAuthenticated)
+                {
+                    <a asp-controller="Events" asp-action="Create" class="btn btn-primary">Etkinlik oluştur</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Kayıt ol</a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var e in Model.Upcoming)
+            {
+                <div class="col">
+                    <partial name="_EventCard" model="e" />
+                </div>
+            }
+        </div>
+    }
+</section>
+
+<section class="mb-4">
+    <h2 class="h4 mb-3">Nasıl çalışır?</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="step-icon mb-3"><i class="bi bi-search"></i></div>
+            <h5>Keşfet</h5>
+            <p class="text-muted mb-0">Kategorilere göre yaklaşan etkinliklere göz at, konumlarını gör.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="step-icon mb-3"><i class="bi bi-person-plus"></i></div>
+            <h5>Katıl</h5>
+            <p class="text-muted mb-0">Tek tıkla etkinliğe katıl, planın değişirse istediğin zaman ayrıl.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="step-icon mb-3"><i class="bi bi-chat-dots"></i></div>
+            <h5>Sohbet et</h5>
+            <p class="text-muted mb-0">Etkinliğin katılımcılarıyla gerçek zamanlı yazış, mesajları kaçırma.</p>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/local-time.js"></script>
+}

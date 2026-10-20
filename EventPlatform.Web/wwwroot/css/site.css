@@ -1,31 +1,272 @@
+/* ===== Tema: Bootstrap değişkenlerini ve bileşenleri tek bir vurgu rengine bağlar ===== */
+:root {
+    --ep-primary: #4f46e5;
+    --ep-primary-dark: #4338ca;
+    --ep-primary-soft: #e0e7ff;
+    --ep-text-muted: #64748b;
+    --ep-border: #e5e7f0;
+    --bs-primary: #4f46e5;
+    --bs-primary-rgb: 79, 70, 229;
+    --bs-link-color: #4f46e5;
+    --bs-link-color-rgb: 79, 70, 229;
+    --bs-link-hover-color: #4338ca;
+    --bs-link-hover-color-rgb: 67, 56, 202;
+    --bs-body-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bs-body-color: #1e293b;
+    --bs-body-bg: #f6f7fb;
+    --bs-border-color: #e5e7f0;
+    --bs-border-radius: 0.75rem;
+    --bs-border-radius-lg: 1rem;
+}
+
 html {
-  font-size: 14px;
+    font-size: 15px;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+    html {
+        font-size: 16px;
+    }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+h1, h2, h3, h4, h5 {
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+/* ===== Düğmeler ===== */
+.btn-primary {
+    --bs-btn-bg: #4f46e5;
+    --bs-btn-border-color: #4f46e5;
+    --bs-btn-hover-bg: #4338ca;
+    --bs-btn-hover-border-color: #4338ca;
+    --bs-btn-active-bg: #3730a3;
+    --bs-btn-active-border-color: #3730a3;
+    --bs-btn-disabled-bg: #4f46e5;
+    --bs-btn-disabled-border-color: #4f46e5;
+    --bs-btn-focus-shadow-rgb: 79, 70, 229;
 }
 
-body {
-  margin-bottom: 60px;
+.btn-outline-primary {
+    --bs-btn-color: #4f46e5;
+    --bs-btn-border-color: #4f46e5;
+    --bs-btn-hover-bg: #4f46e5;
+    --bs-btn-hover-border-color: #4f46e5;
+    --bs-btn-active-bg: #4f46e5;
+    --bs-btn-active-border-color: #4f46e5;
+    --bs-btn-disabled-color: #4f46e5;
+    --bs-btn-disabled-border-color: #4f46e5;
+    --bs-btn-focus-shadow-rgb: 79, 70, 229;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+.btn {
+    font-weight: 500;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+    .btn:focus,
+    .btn:active:focus,
+    .btn-link.nav-link:focus,
+    .form-control:focus,
+    .form-select:focus,
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.1rem #fff, 0 0 0 0.25rem rgba(79, 70, 229, 0.45);
+        border-color: #4f46e5;
+    }
+
+/* ===== Navbar ===== */
+.navbar {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
 }
+
+.navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #0f172a;
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.navbar .nav-link,
+.navbar .nav-link.text-dark {
+    color: #475569 !important;
+    font-weight: 500;
+}
+
+    .navbar .nav-link:hover,
+    .navbar .nav-link.text-dark:hover {
+        color: var(--ep-primary) !important;
+    }
+
+    .navbar .nav-link.active {
+        color: var(--ep-primary) !important;
+        font-weight: 600;
+    }
+
+.dropdown-menu {
+    border: 1px solid var(--ep-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.1);
+    padding: 0.4rem;
+}
+
+.dropdown-item {
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+    .dropdown-item:active {
+        background-color: var(--ep-primary);
+    }
+
+/* ===== Kartlar ===== */
+.card {
+    border: 1px solid var(--ep-border);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.card-header {
+    background: #fff;
+    border-bottom: 1px solid var(--ep-border);
+    font-weight: 600;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.event-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+    .event-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(16, 24, 40, 0.1);
+    }
+
+    .event-card .card-title a {
+        color: #0f172a;
+        text-decoration: none;
+    }
+
+/* ===== Kategori rozetleri (CategoryStyle.CssClass ile eşleşir) ===== */
+.category-badge {
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 0.4em 0.8em;
+}
+
+.cat-0 {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.cat-1 {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.cat-2 {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.cat-3 {
+    background: #ffe4e6;
+    color: #9f1239;
+}
+
+.cat-4 {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.cat-5 {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.cat-6 {
+    background: #ccfbf1;
+    color: #115e59;
+}
+
+.cat-7 {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.cat-8 {
+    background: #fce7f3;
+    color: #9d174d;
+}
+
+.cat-9 {
+    background: #ecfccb;
+    color: #3f6212;
+}
+
+/* ===== Ana sayfa ===== */
+.hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff;
+    border-radius: 1.5rem;
+    padding: 3.5rem 2.5rem;
+    box-shadow: 0 20px 40px rgba(79, 70, 229, 0.25);
+}
+
+    .hero .hero-lead {
+        color: rgba(255, 255, 255, 0.85);
+        max-width: 40rem;
+    }
+
+    .hero .btn-light {
+        color: var(--ep-primary);
+        font-weight: 600;
+    }
+
+.hero-stats {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.step-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--ep-primary-soft);
+    color: var(--ep-primary);
+    font-size: 1.4rem;
+}
+
+/* ===== Alt bilgi ===== */
+.footer {
+    border-top: 1px solid var(--ep-border);
+    background: #fff;
+    color: var(--ep-text-muted);
+    padding: 1.25rem 0;
+    font-size: 0.9rem;
+}
+
+    .footer a {
+        color: var(--ep-text-muted);
+        text-decoration: none;
+    }
+
+        .footer a:hover {
+            color: var(--ep-primary);
+        }

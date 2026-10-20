@@ -1,6 +1,4 @@
-﻿using EventPlatform.Web.Models.Entities;
-
-namespace EventPlatform.Web.Models.ViewModels;
+﻿namespace EventPlatform.Web.Models.ViewModels;
 
 public class EventListItemViewModel
 {
@@ -9,7 +7,5 @@ public class EventListItemViewModel
     public DateTime Date { get; set; }
     public string Location { get; set; } = "";
     public string Category { get; set; } = "";
-
+    public int ParticipantCount { get; set; }
 }
-
-
