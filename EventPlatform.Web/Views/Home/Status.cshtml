@@ -1,0 +1,23 @@
+﻿@model int
+
+@{
+    var (title, message) = Model switch
+    {
+        404 => ("Sayfa bulunamadı", "Aradığın sayfa taşınmış, silinmiş ya da hiç var olmamış olabilir."),
+        403 => ("Erişimin yok", "Bu sayfayı görüntülemek için yetkin bulunmuyor."),
+        401 => ("Giriş gerekli", "Bu sayfayı görmek için giriş yapmalısın."),
+        _ => ("Bir şeyler ters gitti", "İsteğin tamamlanamadı. Biraz sonra tekrar dene.")
+    };
+
+    ViewData["Title"] = title;
+}
+
+<div class="text-center py-5">
+    <div class="display-1 fw-bold text-primary mb-2">@Model</div>
+    <h1 class="h3 mb-3">@title</h1>
+    <p class="text-muted mb-4">@message</p>
+    <div class="d-flex justify-content-center gap-2">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Ana sayfa</a>
+        <a asp-controller="Events" asp-action="Index" class="btn btn-outline-primary">Etkinlikler</a>
+    </div>
+</div>

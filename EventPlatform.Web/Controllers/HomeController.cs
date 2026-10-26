@@ -46,6 +46,13 @@ public class HomeController : Controller
         return View(vm);
     }
 
+    // 404 gibi durum kodlarında Program.cs'deki UseStatusCodePagesWithReExecute buraya yönlendirir.
+    // Durum kodu orijinal hâliyle korunur, burada değiştirmiyoruz.
+    public IActionResult Status(int code)
+    {
+        return View(code);
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

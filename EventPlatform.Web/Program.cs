@@ -31,6 +31,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// 404 gibi gövdesiz yanıtlarda siteye uyan bir sayfa göster (durum kodu korunur).
+app.UseStatusCodePagesWithReExecute("/Home/Status", "?code={0}");
+
 app.UseHttpsRedirection();
 app.UseRouting();
 
