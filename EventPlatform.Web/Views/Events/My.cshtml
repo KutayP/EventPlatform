@@ -1,0 +1,112 @@
+﻿@model MyEventsViewModel
+
+@{
+    ViewData["Title"] = "Etkinliklerim";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Etkinliklerim</h2>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Yeni etkinlik</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<h3 class="h5 mt-4 mb-3">Oluşturduklarım</h3>
+@if (Model.Created.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center text-muted py-4">Henüz bir etkinlik oluşturmadın.</div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="list-group list-group-flush">
+            @foreach (var e in Model.Created)
+            {
+                <div class="list-group-item d-flex flex-wrap align-items-center gap-3 py-3">
+                    <div class="flex-grow-1">
+                        <a asp-action="Details" asp-route-id="@e.Eventid" class="fw-semibold text-decoration-none">@e.Eventname</a>
+                        <div class="small text-muted">
+                            <time class="js-local" datetime="@(e.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@e.Date.ToString("dd.MM.yyyy HH:mm") UTC</time>
+                            · @e.Location · @e.ParticipantCount katılımcı
+                        </div>
+                    </div>
+
+                    @if (e.IsPast)
+                    {
+                        <span class="badge bg-secondary">Sona erdi</span>
+                    }
+                    else if (!e.Isapproved)
+                    {
+                        <span class="badge bg-warning text-dark">Yayından kaldırıldı</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success">Yayında</span>
+                    }
+
+                    <div class="d-flex gap-2">
+                        @if (!e.IsPast)
+                        {
+                            <a asp-action="Edit" asp-route-id="@e.Eventid" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </a>
+                        }
+                        <form asp-action="Delete" asp-route-id="@e.Eventid" method="post"
+                              onsubmit="return confirm('Bu etkinlik, sohbet mesajları ve katılımcı kayıtlarıyla birlikte silinecek. Emin misin?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Sil
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<h3 class="h5 mt-5 mb-3">Katıldıklarım</h3>
+@if (Model.Joined.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center text-muted py-4">
+            Henüz bir etkinliğe katılmadın.
+            <a asp-action="Index">Etkinliklere göz at</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="list-group list-group-flush">
+            @foreach (var e in Model.Joined)
+            {
+                <div class="list-group-item d-flex flex-wrap align-items-center gap-3 py-3">
+                    <div class="flex-grow-1">
+                        <a asp-action="Details" asp-route-id="@e.Eventid" class="fw-semibold text-decoration-none">@e.Eventname</a>
+                        <div class="small text-muted">
+                            <time class="js-local" datetime="@(e.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@e.Date.ToString("dd.MM.yyyy HH:mm") UTC</time>
+                            · @e.Location · @e.ParticipantCount katılımcı
+                        </div>
+                    </div>
+                    @if (e.IsPast)
+                    {
+                        <span class="badge bg-secondary">Sona erdi</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/local-time.js"></script>
+}

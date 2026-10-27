@@ -70,27 +70,36 @@ else
             @foreach (var e in Model.Events)
             {
                 <tr>
-                    <td>@e.Eventname</td>
+                    <td>
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@e.Eventid" class="text-decoration-none">@e.Eventname</a>
+                    </td>
                     <td>@e.CreatorUsername</td>
-                    <td>@e.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>
+                        <time class="js-local" datetime="@(e.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@e.Date.ToString("dd.MM.yyyy HH:mm") UTC</time>
+                    </td>
                     <td>
                         @if (e.Isapproved)
                         {
-                            <span class="badge bg-success">Onaylı</span>
+                            <span class="badge bg-success">Yayında</span>
                         }
                         else
                         {
-
-                            <span class="badge bg-warning text-dark">Bekliyor</span>
+                            <span class="badge bg-secondary">Yayında değil</span>
                         }
                     </td>
                     <td>
-                        @if (!e.Isapproved)
-                        {
-                            <form asp-action="ApproveEvent" asp-route-id="@e.Eventid" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-success btn-sm">Onayla</button>
-                            </form>
-                        }
+                        <form asp-action="SetEventVisibility" asp-route-id="@e.Eventid" method="post" class="d-inline">
+                            @if (e.Isapproved)
+                            {
+                                <input type="hidden" name="visible" value="false" />
+                                <button type="submit" class="btn btn-outline-warning btn-sm">Yayından kaldır</button>
+                            }
+                            else
+                            {
+                                <input type="hidden" name="visible" value="true" />
+                                <button type="submit" class="btn btn-success btn-sm">Yayına al</button>
+                            }
+                        </form>
                         <form asp-action="DeleteEvent" asp-route-id="@e.Eventid" method="post" class="d-inline"
                               onsubmit="return confirm('Bu etkinlik silinsin mi?');">
                             <button type="submit" class="btn btn-danger btn-sm">Sil</button>
@@ -100,4 +109,8 @@ else
             }
         </tbody>
     </table>
+}
+
+@section Scripts {
+    <script src="~/js/local-time.js"></script>
 }

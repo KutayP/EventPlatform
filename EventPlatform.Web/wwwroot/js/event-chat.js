@@ -7,7 +7,10 @@
     const box = document.getElementById("chatMessages");
     const form = document.getElementById("chatForm");
     const input = document.getElementById("chatInput");
+    const submitButton = form.querySelector("button[type=submit]");
     const statusBadge = document.getElementById("chatStatus");
+
+    let accessLost = false;
 
     const formatTime = (iso) =>
         new Date(iso).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
@@ -21,10 +24,34 @@
         box.scrollTop = box.scrollHeight;
     }
 
+    // Sohbet erişimi kapandı (etkinlik yayından kaldırıldı ya da silindi):
+    // kullanıcıya haber ver, sonra sayfayı yenile. Sayfa güncel durumu (uyarıyı) gösterir.
+    function handleAccessLost() {
+        if (accessLost) return;
+        accessLost = true;
+
+        setStatus("erişim kapandı", "danger");
+        input.disabled = true;
+        submitButton.disabled = true;
+
+        const note = document.createElement("div");
+        note.className = "alert alert-warning small mt-2 mb-0 text-center";
+        note.textContent = "Bu etkinlik artık sohbete açık değil (yayından kaldırılmış olabilir). Sayfa yenileniyor…";
+        box.appendChild(note);
+        scrollToEnd();
+
+        connection.stop().catch(() => { });
+        setTimeout(() => window.location.reload(), 2000);
+    }
+
     function markRead() {
-        if (connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("MarkRead", eventId).catch((err) => console.warn(err));
-        }
+        if (accessLost || connection.state !== signalR.HubConnectionState.Connected) return;
+
+        connection.invoke("MarkRead", eventId)
+            .then((result) => {
+                if (result === "no-access") handleAccessLost();
+            })
+            .catch((err) => console.warn(err));
     }
 
     // Metinler textContent ile yazılır: mesajın içindeki HTML çalıştırılamaz (XSS koruması).
@@ -82,19 +109,30 @@
     connection.onreconnecting(() => setStatus("yeniden bağlanıyor…", "warning"));
     connection.onreconnected(async () => {
         try {
-            await connection.invoke("JoinEvent", eventId); // grup üyeliği bağlantıyla birlikte kaybolur
+            // Grup üyeliği bağlantıyla birlikte kaybolur, yeniden katıl.
+            const result = await connection.invoke("JoinEvent", eventId);
+            if (result === "no-access") {
+                handleAccessLost();
+                return;
+            }
             setStatus("bağlı", "success");
         } catch (err) {
             console.error(err);
             setStatus("bağlantı hatası", "danger");
         }
     });
-    connection.onclose(() => setStatus("bağlantı koptu", "danger"));
+    connection.onclose(() => {
+        if (!accessLost) setStatus("bağlantı koptu", "danger");
+    });
 
     async function start() {
         try {
             await connection.start();
-            await connection.invoke("JoinEvent", eventId);
+            const result = await connection.invoke("JoinEvent", eventId);
+            if (result === "no-access") {
+                handleAccessLost();
+                return;
+            }
             setStatus("bağlı", "success");
         } catch (err) {
             console.error(err);
@@ -104,12 +142,21 @@
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (accessLost) return;
+
         const text = input.value.trim();
         if (!text) return;
 
         input.value = "";
         try {
-            await connection.invoke("SendMessage", eventId, text);
+            const result = await connection.invoke("SendMessage", eventId, text);
+
+            if (result === "no-access") {
+                handleAccessLost();
+            } else if (result === "invalid") {
+                input.value = text; // yazdığını kaybetme
+                setStatus("mesaj geçersiz", "warning");
+            }
         } catch (err) {
             console.error(err);
             input.value = text; // gönderilemediyse yazdığını kaybetme

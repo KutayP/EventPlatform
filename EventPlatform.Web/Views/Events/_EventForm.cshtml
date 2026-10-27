@@ -1,0 +1,77 @@
+﻿@model EventCreateViewModel
+
+@{
+    var durations = Enumerable.Range(1, 12).Select(h => new SelectListItem($"{h} saat", h.ToString()));
+    var categories = ((IEnumerable<string>)ViewData["Categories"]!).Select(c => new SelectListItem(c, c));
+
+    var formAction = ViewData["FormAction"] as string ?? "Create";
+    var cancelAction = ViewData["CancelAction"] as string ?? "Index";
+    var submitText = ViewData["SubmitText"] as string ?? "Etkinliği oluştur";
+    var routeId = ViewData["EventId"]?.ToString();
+    var originalDateUtc = ViewData["OriginalDateUtc"] as string;
+}
+
+<form asp-action="@formAction" asp-route-id="@routeId" method="post" id="createForm">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+    <div class="mb-3">
+        <label asp-for="Eventname" class="form-label">Etkinlik adı</label>
+        <input asp-for="Eventname" class="form-control" />
+        <span asp-validation-for="Eventname" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label">Açıklama</label>
+        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Date" class="form-label">Tarih ve saat</label>
+            <input asp-for="Date" type="text" class="form-control" autocomplete="off"
+                   data-datepicker="datetime"
+                   data-utc="@originalDateUtc"
+                   value="@(Model.Date?.ToString("yyyy-MM-dd'T'HH:mm"))" />
+            <span asp-validation-for="Date" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="Duration" class="form-label">Süre</label>
+            <select asp-for="Duration" asp-items="durations" class="form-select"></select>
+            <span asp-validation-for="Duration" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Category" class="form-label">Kategori</label>
+        <select asp-for="Category" asp-items="categories" class="form-select">
+            <option value="">Kategori seçin</option>
+        </select>
+        <span asp-validation-for="Category" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3" id="searchGroup">
+        <label class="form-label">Konum ara</label>
+        <div id="placeSearch"></div>
+        <div class="form-text">Yer adı ya da adres yazıp listeden seçin; ya da aşağıdaki haritaya tıklayın.</div>
+    </div>
+
+    <div class="mb-3">
+        <div id="map" style="height: 380px; border-radius: 8px;"></div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Location" class="form-label">Seçilen konum</label>
+        <input asp-for="Location" class="form-control" readonly />
+        <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+
+    <input asp-for="Latitude" type="hidden" />
+    <input asp-for="Longitude" type="hidden" />
+    <input asp-for="TimezoneOffsetMinutes" type="hidden" />
+
+    <div class="d-flex gap-2">
+        <a asp-action="@cancelAction" class="btn btn-outline-secondary">Vazgeç</a>
+        <button type="submit" class="btn btn-primary">@submitText</button>
+    </div>
+</form>

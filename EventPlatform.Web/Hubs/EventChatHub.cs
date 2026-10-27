@@ -12,6 +12,12 @@ public class EventChatHub : Hub
 {
     private const int MaxMessageLength = 1000;
 
+    // Hub metotlarının istemciye döndürdüğü sonuçlar. "Erişim yok" bir hata değil, beklenen bir durumdur
+    // (ör. etkinlik yayından kaldırıldı), bu yüzden istisna fırlatmak yerine sonuç döndürülür.
+    private const string Ok = "ok";
+    private const string NoAccess = "no-access";
+    private const string Invalid = "invalid";
+
     private readonly AppDbContext _context;
 
     public EventChatHub(AppDbContext context)
@@ -30,32 +36,40 @@ public class EventChatHub : Hub
     private static DateTime NowForDb() =>
         DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
 
-    // Sadece onaylı etkinliğin sahibi ve katılımcıları sohbete girebilir.
+    // Sadece yayındaki etkinliğin sahibi ve katılımcıları sohbete girebilir.
     private Task<bool> CanChatAsync(int eventId, int userId) =>
         _context.Events.AnyAsync(e =>
             e.Eventid == eventId &&
             e.Isapproved &&
             (e.Createdbyuserid == userId || e.Users.Any(u => u.Userid == userId)));
 
-    public async Task JoinEvent(int eventId)
+    public async Task<string> JoinEvent(int eventId)
     {
         var userId = CurrentUserId;
         if (!await CanChatAsync(eventId, userId))
-            throw new HubException("Bu sohbete erişiminiz yok.");
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(eventId));
+            return NoAccess;
+        }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(eventId));
         await MarkReadInternalAsync(eventId, userId);
+        return Ok;
     }
 
-    public async Task SendMessage(int eventId, string text)
+    public async Task<string> SendMessage(int eventId, string text)
     {
         text = (text ?? "").Trim();
         if (text.Length == 0 || text.Length > MaxMessageLength)
-            throw new HubException($"Mesaj 1 ile {MaxMessageLength} karakter arasında olmalı.");
+            return Invalid;
 
         var userId = CurrentUserId;
         if (!await CanChatAsync(eventId, userId))
-            throw new HubException("Bu sohbete erişiminiz yok.");
+        {
+            // Erişimi kapanan bağlantı, canlı mesaj almaya devam etmesin.
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(eventId));
+            return NoAccess;
+        }
 
         var sentAt = NowForDb();
         var message = new Message
@@ -80,16 +94,22 @@ public class EventChatHub : Hub
             text = message.Messagetext,
             sentAt = DateTime.SpecifyKind(sentAt, DateTimeKind.Utc)
         });
+
+        return Ok;
     }
 
     // İstemci sayfa açıkken yeni mesaj gelince okundu bilgisini günceller.
-    public async Task MarkRead(int eventId)
+    public async Task<string> MarkRead(int eventId)
     {
         var userId = CurrentUserId;
         if (!await CanChatAsync(eventId, userId))
-            throw new HubException("Bu sohbete erişiminiz yok.");
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(eventId));
+            return NoAccess;
+        }
 
         await MarkReadInternalAsync(eventId, userId);
+        return Ok;
     }
 
     // (userid, eventid) için "en son ne zaman okudu" değerini yazar (yoksa ekler).

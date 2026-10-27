@@ -46,7 +46,7 @@ public class AdminController : Controller
                     Eventname = e.Eventname,
                     Description = e.Description,
                     Date = e.Date,
-                    Isapproved = e.Isapproved,
+                    Isapproved = e.Isapproved, // "yayında mı"
                     CreatorUsername = e.Createdbyuser.Username
                 })
                 .ToListAsync()
@@ -55,9 +55,10 @@ public class AdminController : Controller
         return View(model);
     }
 
+    // Etkinlikler hemen yayınlanır; admin uygunsuz olanı yayından kaldırır ya da geri yayınlar.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApproveEvent(int id)
+    public async Task<IActionResult> SetEventVisibility(int id, bool visible)
     {
         var ev = await _context.Events.FindAsync(id);
 
@@ -65,15 +66,17 @@ public class AdminController : Controller
         {
             TempData["ErrorMessage"] = "Etkinlik bulunamadı.";
         }
-        else if (ev.Isapproved)
+        else if (ev.Isapproved == visible)
         {
-            TempData["ErrorMessage"] = "Etkinlik zaten onaylı.";
+            TempData["ErrorMessage"] = visible ? "Etkinlik zaten yayında." : "Etkinlik zaten yayında değil.";
         }
         else
         {
-            ev.Isapproved = true;
+            ev.Isapproved = visible;
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = $"\"{ev.Eventname}\" etkinliği onaylandı.";
+            TempData["SuccessMessage"] = visible
+                ? $"\"{ev.Eventname}\" yeniden yayına alındı."
+                : $"\"{ev.Eventname}\" yayından kaldırıldı.";
         }
 
         return RedirectToAction(nameof(AdminPanel), new { tab = "events" });

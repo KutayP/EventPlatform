@@ -26,6 +26,9 @@
                 <li>
                     <a class="dropdown-item" asp-controller="Profile" asp-action="Index">Profilim</a>
                 </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Events" asp-action="My">Etkinliklerim</a>
+                </li>
                 @if (User.IsInRole("Admin"))
                 {
                     <li>

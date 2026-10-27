@@ -39,6 +39,13 @@
 {
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
+@if (!Model.IsApproved)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-eye-slash"></i>
+        Bu etkinlik yönetici tarafından yayından kaldırıldı. Yalnızca etkinliği oluşturan, katılımcılar ve yöneticiler görebilir.e3
+    </div>
+}
 
 <div class="row g-4">
     <div class="col-lg-8">
@@ -78,7 +85,7 @@
                 </div>
             </div>
         }
-        else if (User.Identity!.IsAuthenticated && !Model.IsPast)
+        else if (Model.IsApproved && User.Identity!.IsAuthenticated && !Model.IsPast)
         {
             <div class="card">
                 <div class="card-body text-center text-muted py-4">
@@ -124,6 +131,10 @@
                 {
                     <div class="alert alert-secondary mb-0 text-center">Bu etkinlik sona erdi.</div>
                 }
+                else if (!Model.IsApproved)
+                {
+                    <div class="alert alert-warning mb-0 text-center">Yayında değil.</div>
+                }
                 else if (!User.Identity!.IsAuthenticated)
                 {
                     <a asp-controller="Account" asp-action="Login"
@@ -145,6 +156,25 @@
                     <form asp-action="Join" asp-route-id="@Model.Eventid" method="post">
                         <button type="submit" class="btn btn-primary w-100">Etkinliğe katıl</button>
                     </form>
+                }
+
+                @if (Model.IsCreator || Model.IsAdmin)
+                {
+                    <hr />
+                    <div class="d-grid gap-2">
+                        @if (Model.IsCreator && !Model.IsPast)
+                        {
+                            <a asp-action="Edit" asp-route-id="@Model.Eventid" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </a>
+                        }
+                        <form asp-action="Delete" asp-route-id="@Model.Eventid" method="post"
+                              onsubmit="return confirm('Bu etkinlik, sohbet mesajları ve katılımcı kayıtlarıyla birlikte silinecek. Emin misin?');">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-trash"></i> Etkinliği sil
+                            </button>
+                        </form>
+                    </div>
                 }
             </div>
         </div>

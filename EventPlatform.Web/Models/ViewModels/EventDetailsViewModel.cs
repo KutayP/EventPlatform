@@ -14,11 +14,13 @@ public class EventDetailsViewModel
     public string CreatorUsername { get; set; } = "";
     public int ParticipantCount { get; set; }
 
+    public bool IsApproved { get; set; }
+    public bool IsAdmin { get; set; }
     public bool IsCreator { get; set; }
     public bool IsParticipant { get; set; }
     public bool IsPast { get; set; }
 
     public int CurrentUserId { get; set; }
-    public bool CanChat => IsCreator || IsParticipant;
+    public bool CanChat => IsApproved && (IsCreator || IsParticipant);
     public List<ChatMessageViewModel> Messages { get; set; } = new();
 }

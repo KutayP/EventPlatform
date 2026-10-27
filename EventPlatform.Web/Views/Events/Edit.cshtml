@@ -1,0 +1,34 @@
+﻿@model EventEditViewModel
+
+@{
+    ViewData["Title"] = "Etkinliği düzenle";
+    ViewData["FormAction"] = "Edit";
+    ViewData["CancelAction"] = "My";
+    ViewData["SubmitText"] = "Değişiklikleri kaydet";
+    ViewData["EventId"] = Model.Eventid;
+    ViewData["OriginalDateUtc"] = Model.OriginalDateUtc;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h2 class="mb-3">Etkinliği düzenle</h2>
+
+        <partial name="_EventForm" model="Model" />
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_DatePickerAssets" />
+
+    <style>
+        #placeSearch gmp-place-autocomplete {
+            display: block;
+            width: 100%;
+            color-scheme: light;
+        }
+    </style>
+
+    <script src="~/js/event-form.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@ViewData["MapsApiKey"]&callback=initMap&loading=async" async defer></script>
+}
