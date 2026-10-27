@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using EventPlatform.Web.Hubs;
 using EventPlatform.Web.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -19,9 +20,18 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDbContext<DataProtectionKeyContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddDataProtection()
+var dataProtection = builder.Services.AddDataProtection()
     .SetApplicationName("EventPlatform")
     .PersistKeysToDbContext<DataProtectionKeyContext>();
+
+// Anahtarlar veritabanında sertifikayla şifreli saklanır; sertifika kodda değil yapılandırmada (secret).
+var certBase64 = builder.Configuration["DataProtection:CertificateBase64"];
+var certPassword = builder.Configuration["DataProtection:CertificatePassword"];
+if (!string.IsNullOrWhiteSpace(certBase64))
+{
+    var certificate = X509CertificateLoader.LoadPkcs12(Convert.FromBase64String(certBase64), certPassword);
+    dataProtection.ProtectKeysWithCertificate(certificate);
+}
 
 // Render gibi bir ters vekilin arkasında gerçek istemci adresi ve https bilgisi başlıklardan gelir.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

@@ -49,13 +49,18 @@
                 <span asp-validation-for="Category" class="text-danger"></span>
             </div>
 
+            <div class="mb-3" id="searchGroup">
+                <label class="form-label">Konum ara</label>
+                <div id="placeSearch"></div>
+                <div class="form-text">Yer adı ya da adres yazıp listeden seçin; ya da aşağıdaki haritaya tıklayın.</div>
+            </div>
+
             <div class="mb-3">
-                <label class="form-label">Konum (haritaya tıklayın)</label>
                 <div id="map" style="height: 380px; border-radius: 8px;"></div>
             </div>
 
             <div class="mb-3">
-                <label asp-for="Location" class="form-label">Konum adı / adres</label>
+                <label asp-for="Location" class="form-label">Seçilen konum</label>
                 <input asp-for="Location" class="form-control" readonly />
                 <span asp-validation-for="Location" class="text-danger"></span>
             </div>
@@ -76,8 +81,16 @@
     <partial name="_ValidationScriptsPartial" />
     <partial name="_DatePickerAssets" />
 
+    <style>
+        #placeSearch gmp-place-autocomplete {
+            display: block;
+            width: 100%;
+            color-scheme: light;
+        }
+    </style>
+
     <script>
-        let map, marker, geocoder, Place;
+        let map, marker, geocoder, Place, PlaceAutocompleteElement;
 
         function placeMarker(latLng) {
             if (!marker) {
@@ -88,11 +101,15 @@
             }
         }
 
+        function setCoordinates(latLng) {
+            document.getElementById("Latitude").value = latLng.lat().toFixed(6);
+            document.getElementById("Longitude").value = latLng.lng().toFixed(6);
+        }
+
         async function fillLocation(latLng, placeId) {
-            const lat = latLng.lat().toFixed(6);
-            const lng = latLng.lng().toFixed(6);
-            document.getElementById("Latitude").value = lat;
-            document.getElementById("Longitude").value = lng;
+            setCoordinates(latLng);
+            const lat = document.getElementById("Latitude").value;
+            const lng = document.getElementById("Longitude").value;
             const field = document.getElementById("Location");
 
             // 1) İsimli bir yere (restoran, okul, park...) tıklandıysa adını ve adresini al.
@@ -132,9 +149,62 @@
             await fillLocation(e.latLng, e.placeId);
         }
 
+        // Arama kutusundan seçilen yeri haritaya ve forma uygula.
+        async function selectPlace(place) {
+            try {
+                await place.fetchFields({
+                    fields: ["displayName", "formattedAddress", "location", "viewport"]
+                });
+            } catch (err) {
+                console.warn("Yer bilgisi alınamadı:", err);
+                return;
+            }
+            if (!place.location) return;
+
+            placeMarker(place.location);
+            setCoordinates(place.location);
+
+            if (place.viewport) {
+                map.fitBounds(place.viewport);
+                // Küçük yerlerde (bina, iskele) aşırı yakınlaşmasın.
+                google.maps.event.addListenerOnce(map, "idle", () => {
+                    if (map.getZoom() > 17) map.setZoom(17);
+                });
+            } else {
+                map.setCenter(place.location);
+                map.setZoom(16);
+            }
+
+            const field = document.getElementById("Location");
+            field.value = place.displayName && place.formattedAddress
+                ? place.displayName + " – " + place.formattedAddress
+                : (place.formattedAddress || place.displayName || "");
+        }
+
+        function setupSearch() {
+            const group = document.getElementById("searchGroup");
+            const box = document.getElementById("placeSearch");
+            if (!PlaceAutocompleteElement) {
+                // Places kütüphanesi yüklenemediyse arama gizlenir, harita tıklaması çalışmaya devam eder.
+                group.hidden = true;
+                return;
+            }
+
+            const autocomplete = new PlaceAutocompleteElement({ includedRegionCodes: ["tr"] });
+            box.appendChild(autocomplete);
+
+            // Yeni sürümlerde "gmp-select", eskilerde "gmp-placeselect" olayı gelir.
+            autocomplete.addEventListener("gmp-select", async (ev) => {
+                await selectPlace(ev.placePrediction.toPlace());
+            });
+            autocomplete.addEventListener("gmp-placeselect", async (ev) => {
+                await selectPlace(ev.place);
+            });
+        }
+
         async function initMap() {
             try {
-                ({ Place } = await google.maps.importLibrary("places"));
+                ({ Place, PlaceAutocompleteElement } = await google.maps.importLibrary("places"));
             } catch (err) {
                 console.warn("Places kütüphanesi yüklenemedi:", err);
             }
@@ -145,6 +215,7 @@
                 center: { lat: 40.7654, lng: 29.9408 } // Kocaeli
             });
             map.addListener("click", onMapClick);
+            setupSearch();
 
             // Doğrulama hatasıyla form geri geldiyse seçili konumu tekrar göster.
             const lat = parseFloat(document.getElementById("Latitude").value);

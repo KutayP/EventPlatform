@@ -5,3 +5,12 @@ obj/
 *.suo
 .DS_Store
 *.log
+publish/
+
+# Sirlar ve sertifikalar
+.env
+.env.*
+*.pfx
+*.pem
+*.key
+appsettings.*.local.json
