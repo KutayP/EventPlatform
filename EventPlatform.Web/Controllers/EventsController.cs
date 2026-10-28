@@ -80,7 +80,7 @@ public class EventsController : Controller
                 Date = e.Date,
                 Location = e.Location,
                 Category = e.Category,
-                ParticipantCount = e.Users.Count
+                ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1
             })
             .ToListAsync();
 
@@ -112,7 +112,7 @@ public class EventsController : Controller
                 Date = e.Date,
                 Location = e.Location,
                 Isapproved = e.Isapproved,
-                ParticipantCount = e.Users.Count
+                ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1
             })
             .ToListAsync();
 
@@ -127,7 +127,7 @@ public class EventsController : Controller
                 Date = e.Date,
                 Location = e.Location,
                 Isapproved = e.Isapproved,
-                ParticipantCount = e.Users.Count
+                ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1
             })
             .ToListAsync();
 
@@ -162,7 +162,7 @@ public class EventsController : Controller
                 Latitude = e.Latitude,
                 Longitude = e.Longitude,
                 CreatorUsername = e.Createdbyuser.Username,
-                ParticipantCount = e.Users.Count,
+                ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1,
                 IsApproved = e.Isapproved,
                 IsCreator = e.Createdbyuserid == userId,
                 IsParticipant = e.Users.Any(u => u.Userid == userId)

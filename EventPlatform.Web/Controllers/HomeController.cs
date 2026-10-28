@@ -38,7 +38,7 @@ public class HomeController : Controller
                     Date = e.Date,
                     Location = e.Location,
                     Category = e.Category,
-                    ParticipantCount = e.Users.Count
+                    ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1
                 })
                 .ToListAsync()
         };
