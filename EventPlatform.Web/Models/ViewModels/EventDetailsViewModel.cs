@@ -23,5 +23,8 @@ public class EventDetailsViewModel
 
     public int CurrentUserId { get; set; }
     public bool CanChat => IsApproved && (IsCreator || IsParticipant);
+
+    // Admin, katılımcı olmasa da sohbeti salt okunur görebilir (moderasyon). Mesaj gönderemez.
+    public bool CanReadChatAsAdmin => IsAdmin && !CanChat;
     public List<ChatMessageViewModel> Messages { get; set; } = new();
 }

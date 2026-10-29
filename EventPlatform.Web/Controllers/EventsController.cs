@@ -199,8 +199,8 @@ public class EventsController : Controller
         vm.IsPast = vm.Date < NowForDb();
         vm.CurrentUserId = userId;
 
-        // Sohbet geçmişi sadece etkinliğin sahibine ve katılımcılarına gösterilir.
-        if (vm.CanChat)
+        // Sohbet geçmişi etkinliğin sahibine ve katılımcılarına gösterilir; admin de salt okunur görebilir.
+        if (vm.CanChat || vm.CanReadChatAsAdmin)
         {
             var latest = await _context.Messages
                 .AsNoTracking()
@@ -221,8 +221,9 @@ public class EventsController : Controller
             latest.Reverse(); // ekranda eskiden yeniye
             vm.Messages = latest;
 
-            // Sohbet ekrana geldi: bu etkinlik için okundu işaretle (navbar rozeti buna bakar).
-            await MarkReadAsync(vm.Eventid, userId);
+            // Sohbet ekrana geldi: okundu işaretle (navbar rozeti buna bakar). Admin salt okunur baktığı için işaretlenmez.
+            if (vm.CanChat)
+                await MarkReadAsync(vm.Eventid, userId);
         }
 
         return View(vm);
