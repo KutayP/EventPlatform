@@ -2,7 +2,8 @@
 
 @{
     var durations = Enumerable.Range(1, 12).Select(h => new SelectListItem($"{h} saat", h.ToString()));
-    var categories = ((IEnumerable<string>)ViewData["Categories"]!).Select(c => new SelectListItem(c, c));
+    var categories = ((IEnumerable<string>)ViewData["Categories"]!)
+        .Select(c => new SelectListItem(CategoryStyle.Label(c), c));
 
     var formAction = ViewData["FormAction"] as string ?? "Create";
     var cancelAction = ViewData["CancelAction"] as string ?? "Index";

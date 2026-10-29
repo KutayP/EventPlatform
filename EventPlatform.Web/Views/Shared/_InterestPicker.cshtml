@@ -11,7 +11,7 @@ else
         {
             <input type="checkbox" class="btn-check" name="SelectedInterestIds"
                    id="interest-@i.Interestid" value="@i.Interestid" checked="@i.Selected" autocomplete="off" />
-            <label class="btn btn-outline-primary btn-sm rounded-pill" for="interest-@i.Interestid">@i.Interestname</label>
+            <label class="btn btn-outline-primary btn-sm rounded-pill" for="interest-@i.Interestid">@CategoryStyle.Label(i.Interestname)</label>
         }
     </div>
 }
