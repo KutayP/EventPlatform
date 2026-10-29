@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace EventPlatform.Web.Models.Entities;
@@ -26,6 +26,8 @@ public partial class Event
     public double Longitude { get; set; }
 
     public bool Isapproved { get; set; }
+
+    public string Publicid { get; set; } = null!;
 
     public virtual User Createdbyuser { get; set; } = null!;
 

@@ -34,6 +34,7 @@ public class HomeController : Controller
                 .Select(e => new EventListItemViewModel
                 {
                     Eventid = e.Eventid,
+                    Publicid = e.Publicid,
                     Eventname = e.Eventname,
                     Date = e.Date,
                     Location = e.Location,

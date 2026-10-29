@@ -1,4 +1,5 @@
-﻿@using System.Security.Claims
+@using EventPlatform.Web.Helpers
+@using System.Security.Claims
 @model AdminPanelViewModel
 
 @{
@@ -71,7 +72,7 @@ else
             {
                 <tr>
                     <td>
-                        <a asp-controller="Events" asp-action="Details" asp-route-id="@e.Eventid" class="text-decoration-none">@e.Eventname</a>
+                        <a href="@Url.EventUrl(e.Eventname, e.Publicid)" class="text-decoration-none">@e.Eventname</a>
                     </td>
                     <td>@e.CreatorUsername</td>
                     <td>

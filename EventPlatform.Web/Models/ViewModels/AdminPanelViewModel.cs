@@ -1,4 +1,4 @@
-﻿namespace EventPlatform.Web.Models.ViewModels;
+namespace EventPlatform.Web.Models.ViewModels;
 
 public class AdminUserRow
 {
@@ -11,6 +11,7 @@ public class AdminUserRow
 public class AdminEventRow
 {
     public int Eventid { get; set; }
+    public string Publicid { get; set; } = null!;
     public string Eventname { get; set; } = null!;
     public string Description { get; set; } = null!;
     public DateTime Date { get; set; }

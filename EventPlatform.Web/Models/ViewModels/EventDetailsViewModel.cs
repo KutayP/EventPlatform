@@ -1,8 +1,9 @@
-﻿namespace EventPlatform.Web.Models.ViewModels;
+namespace EventPlatform.Web.Models.ViewModels;
 
 public class EventDetailsViewModel
 {
     public int Eventid { get; set; }
+    public string Publicid { get; set; } = "";
     public string Eventname { get; set; } = "";
     public string Description { get; set; } = "";
     public DateTime Date { get; set; }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EventPlatform.Web.Models.ViewModels;
 
@@ -7,7 +7,7 @@ namespace EventPlatform.Web.Models.ViewModels;
 public class EventEditViewModel : EventCreateViewModel
 {
     [BindNever]
-    public int Eventid { get; set; }
+    public string Publicid { get; set; } = "";
 
     // Kayıtlı (UTC) tarih; tarayıcı bunu yerel saate çevirip forma yazar.
     [BindNever]

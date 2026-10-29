@@ -1,4 +1,4 @@
-﻿@model EventCreateViewModel
+@model EventCreateViewModel
 
 @{
     var durations = Enumerable.Range(1, 12).Select(h => new SelectListItem($"{h} saat", h.ToString()));
@@ -8,11 +8,11 @@
     var formAction = ViewData["FormAction"] as string ?? "Create";
     var cancelAction = ViewData["CancelAction"] as string ?? "Index";
     var submitText = ViewData["SubmitText"] as string ?? "Etkinliği oluştur";
-    var routeId = ViewData["EventId"]?.ToString();
+    var routePublicId = ViewData["PublicId"] as string;
     var originalDateUtc = ViewData["OriginalDateUtc"] as string;
 }
 
-<form asp-action="@formAction" asp-route-id="@routeId" method="post" id="createForm">
+<form asp-action="@formAction" asp-route-publicId="@routePublicId" method="post" id="createForm">
     <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
     <div class="mb-3">

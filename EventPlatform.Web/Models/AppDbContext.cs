@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using EventPlatform.Web.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +41,8 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("events");
 
+            entity.HasIndex(e => e.Publicid, "uq_events_publicid").IsUnique();
+
             entity.Property(e => e.Eventid).HasColumnName("eventid");
             entity.Property(e => e.Category)
                 .HasMaxLength(100)
@@ -62,6 +64,9 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("location");
             entity.Property(e => e.Longitude).HasColumnName("longitude");
+            entity.Property(e => e.Publicid)
+                .HasMaxLength(8)
+                .HasColumnName("publicid");
 
             entity.HasOne(d => d.Createdbyuser).WithMany(p => p.Events)
                 .HasForeignKey(d => d.Createdbyuserid)

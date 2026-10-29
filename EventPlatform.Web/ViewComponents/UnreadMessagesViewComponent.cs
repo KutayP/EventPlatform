@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -34,10 +34,11 @@ public class UnreadMessagesViewComponent : ViewComponent
                 && (m.Event.Createdbyuserid == userId || m.Event.Users.Any(u => u.Userid == userId))
                 && !_context.Eventreadstatuses.Any(r =>
                     r.Userid == userId && r.Eventid == m.Eventid && r.Lastreadat >= m.Senttime))
-            .GroupBy(m => new { m.Eventid, m.Event.Eventname })
+            .GroupBy(m => new { m.Eventid, m.Event.Publicid, m.Event.Eventname })
             .Select(g => new UnreadEventItem
             {
                 Eventid = g.Key.Eventid,
+                Publicid = g.Key.Publicid,
                 Eventname = g.Key.Eventname,
                 Count = g.Count()
             })

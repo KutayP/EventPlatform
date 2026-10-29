@@ -1,4 +1,5 @@
-﻿@model EventDetailsViewModel
+@using EventPlatform.Web.Helpers
+@model EventDetailsViewModel
 
 @{
     ViewData["Title"] = Model.Eventname;
@@ -43,7 +44,7 @@
 {
     <div class="alert alert-warning">
         <i class="bi bi-eye-slash"></i>
-        Bu etkinlik yönetici tarafından yayından kaldırıldı. Yalnızca etkinliği oluşturan, katılımcılar ve yöneticiler görebilir.e3
+        Bu etkinlik yönetici tarafından yayından kaldırıldı. Yalnızca etkinliği oluşturan, katılımcılar ve yöneticiler görebilir.
     </div>
 }
 
@@ -138,7 +139,7 @@
                 else if (!User.Identity!.IsAuthenticated)
                 {
                     <a asp-controller="Account" asp-action="Login"
-                       asp-route-returnUrl="@Url.Action("Details", "Events", new { id = Model.Eventid })"
+                       asp-route-returnUrl="@Url.EventUrl(Model.Eventname, Model.Publicid)"
                        class="btn btn-primary w-100">Katılmak için giriş yap</a>
                 }
                 else if (Model.IsCreator)
@@ -147,13 +148,13 @@
                 }
                 else if (Model.IsParticipant)
                 {
-                    <form asp-action="Leave" asp-route-id="@Model.Eventid" method="post">
+                    <form asp-action="Leave" asp-route-publicId="@Model.Publicid" method="post">
                         <button type="submit" class="btn btn-outline-danger w-100">Etkinlikten ayrıl</button>
                     </form>
                 }
                 else
                 {
-                    <form asp-action="Join" asp-route-id="@Model.Eventid" method="post">
+                    <form asp-action="Join" asp-route-publicId="@Model.Publicid" method="post">
                         <button type="submit" class="btn btn-primary w-100">Etkinliğe katıl</button>
                     </form>
                 }
@@ -164,11 +165,11 @@
                     <div class="d-grid gap-2">
                         @if (Model.IsCreator && !Model.IsPast)
                         {
-                            <a asp-action="Edit" asp-route-id="@Model.Eventid" class="btn btn-outline-primary">
+                            <a asp-action="Edit" asp-route-publicId="@Model.Publicid" class="btn btn-outline-primary">
                                 <i class="bi bi-pencil"></i> Düzenle
                             </a>
                         }
-                        <form asp-action="Delete" asp-route-id="@Model.Eventid" method="post"
+                        <form asp-action="Delete" asp-route-publicId="@Model.Publicid" method="post"
                               onsubmit="return confirm('Bu etkinlik, sohbet mesajları ve katılımcı kayıtlarıyla birlikte silinecek. Emin misin?');">
                             <button type="submit" class="btn btn-outline-danger w-100">
                                 <i class="bi bi-trash"></i> Etkinliği sil

@@ -1,5 +1,6 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Security.Claims;
+using EventPlatform.Web.Helpers;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
@@ -76,6 +77,7 @@ public class EventsController : Controller
             .Select(e => new EventListItemViewModel
             {
                 Eventid = e.Eventid,
+                Publicid = e.Publicid,
                 Eventname = e.Eventname,
                 Date = e.Date,
                 Location = e.Location,
@@ -108,6 +110,7 @@ public class EventsController : Controller
             .Select(e => new MyEventItemViewModel
             {
                 Eventid = e.Eventid,
+                Publicid = e.Publicid,
                 Eventname = e.Eventname,
                 Date = e.Date,
                 Location = e.Location,
@@ -123,6 +126,7 @@ public class EventsController : Controller
             .Select(e => new MyEventItemViewModel
             {
                 Eventid = e.Eventid,
+                Publicid = e.Publicid,
                 Eventname = e.Eventname,
                 Date = e.Date,
                 Location = e.Location,
@@ -139,20 +143,33 @@ public class EventsController : Controller
 
     // ---------- DETAY ----------
 
-    public async Task<IActionResult> Details(int id)
+    // Kullanıcının görebileceği etkinlikler: yayında olanlar + (oluşturan, katılımcı, admin için) yayında olmayanlar.
+    private IQueryable<Event> VisibleEvents(int userId, bool isAdmin) =>
+        _context.Events.Where(e =>
+            e.Isapproved || e.Createdbyuserid == userId || isAdmin ||
+            e.Users.Any(u => u.Userid == userId));
+
+    // Adres: /etkinlik/kadikoy-sahil-fotograf-yuruyusu-k7x2m9ab
+    // Etkinliği bulan kısım sondaki kısa koddur; baştaki yazı (slug) yalnızca okunabilirlik içindir.
+    // Slug eskiyse ya da eksikse (ad değişmiş olabilir) güncel adrese yönlendirilir.
+    [HttpGet("etkinlik/{slugId}")]
+    public async Task<IActionResult> Details(string slugId)
     {
+        var (slug, publicId) = SlugHelper.Split(slugId);
+        if (publicId == null)
+            return NotFound();
+
         var userId = CurrentUserId;
         var isAdmin = User.IsInRole("Admin");
 
         // Yayından kaldırılmış etkinliği yalnızca oluşturan, katılımcılar ve admin görebilir.
-        var vm = await _context.Events
+        var vm = await VisibleEvents(userId, isAdmin)
             .AsNoTracking()
-            .Where(e => e.Eventid == id &&
-                        (e.Isapproved || e.Createdbyuserid == userId || isAdmin ||
-                         e.Users.Any(u => u.Userid == userId)))
+            .Where(e => e.Publicid == publicId)
             .Select(e => new EventDetailsViewModel
             {
                 Eventid = e.Eventid,
+                Publicid = e.Publicid,
                 Eventname = e.Eventname,
                 Description = e.Description,
                 Date = e.Date,
@@ -172,6 +189,12 @@ public class EventsController : Controller
         if (vm == null)
             return NotFound();
 
+        if (slug != SlugHelper.Slugify(vm.Eventname))
+        {
+            return RedirectToAction(nameof(Details),
+                new { slugId = SlugHelper.Compose(vm.Eventname, vm.Publicid) });
+        }
+
         vm.IsAdmin = isAdmin;
         vm.IsPast = vm.Date < NowForDb();
         vm.CurrentUserId = userId;
@@ -181,7 +204,7 @@ public class EventsController : Controller
         {
             var latest = await _context.Messages
                 .AsNoTracking()
-                .Where(m => m.Eventid == id)
+                .Where(m => m.Eventid == vm.Eventid)
                 .OrderByDescending(m => m.Senttime)
                 .ThenByDescending(m => m.Messageid)
                 .Take(ChatHistoryLimit)
@@ -199,7 +222,7 @@ public class EventsController : Controller
             vm.Messages = latest;
 
             // Sohbet ekrana geldi: bu etkinlik için okundu işaretle (navbar rozeti buna bakar).
-            await MarkReadAsync(id, userId);
+            await MarkReadAsync(vm.Eventid, userId);
         }
 
         return View(vm);
@@ -258,7 +281,7 @@ public class EventsController : Controller
             return View(model);
         }
 
-        var ev = new Event
+        Event BuildEvent() => new Event
         {
             Createdbyuserid = CurrentUserId,
             Eventname = model.Eventname.Trim(),
@@ -272,23 +295,38 @@ public class EventsController : Controller
             Isapproved = true // hemen yayınlanır; uygunsuz içeriği admin sonradan kaldırır
         };
 
-        _context.Events.Add(ev);
-        await _context.SaveChangesAsync();
+        // Kısa kod rastgele üretilir; veritabanında benzersiz olduğu için çok nadir çakışırsa yeni kodla tekrar denenir.
+        for (var attempt = 0; ; attempt++)
+        {
+            var ev = BuildEvent();
+            ev.Publicid = PublicIdGenerator.New();
+            _context.Events.Add(ev);
 
-        TempData["SuccessMessage"] = "Etkinliğiniz oluşturuldu ve yayınlandı.";
-        return RedirectToAction(nameof(Details), new { id = ev.Eventid });
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Etkinliğiniz oluşturuldu ve yayınlandı.";
+                return RedirectToAction(nameof(Details),
+                    new { slugId = SlugHelper.Compose(ev.Eventname, ev.Publicid) });
+            }
+            catch (DbUpdateException ex) when (attempt < 4 && IsPublicIdCollision(ex))
+            {
+                _context.Entry(ev).State = EntityState.Detached;
+            }
+        }
     }
 
     // ---------- DÜZENLE ----------
 
     [Authorize]
-    [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    [HttpGet("etkinlik/{publicId:length(8)}/duzenle")]
+    public async Task<IActionResult> Edit(string publicId)
     {
         // Yalnızca oluşturan kişi düzenleyebilir.
         var ev = await _context.Events
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Eventid == id && e.Createdbyuserid == CurrentUserId);
+            .FirstOrDefaultAsync(e => e.Publicid == publicId && e.Createdbyuserid == CurrentUserId);
 
         if (ev == null)
             return NotFound();
@@ -301,7 +339,7 @@ public class EventsController : Controller
 
         var model = new EventEditViewModel
         {
-            Eventid = ev.Eventid,
+            Publicid = ev.Publicid,
             Eventname = ev.Eventname,
             Description = ev.Description,
             Date = ev.Date, // UTC; tarayıcı yerel saate çevirir
@@ -318,23 +356,23 @@ public class EventsController : Controller
     }
 
     [Authorize]
-    [HttpPost]
+    [HttpPost("etkinlik/{publicId:length(8)}/duzenle")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, EventEditViewModel model)
+    public async Task<IActionResult> Edit(string publicId, EventEditViewModel model)
     {
         var categories = await GetCategoriesAsync();
         var (lat, lng, dateUtc) = ValidateEventForm(model, categories);
 
         if (!ModelState.IsValid)
         {
-            model.Eventid = id;
+            model.Publicid = publicId;
             model.OriginalDateUtc = null;
             await FillFormViewDataAsync(categories);
             return View(model);
         }
 
         var ev = await _context.Events
-            .FirstOrDefaultAsync(e => e.Eventid == id && e.Createdbyuserid == CurrentUserId);
+            .FirstOrDefaultAsync(e => e.Publicid == publicId && e.Createdbyuserid == CurrentUserId);
 
         if (ev == null)
             return NotFound();
@@ -357,15 +395,16 @@ public class EventsController : Controller
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Etkinlik güncellendi.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details),
+            new { slugId = SlugHelper.Compose(ev.Eventname, ev.Publicid) });
     }
 
     // ---------- SİL ----------
 
     [Authorize]
-    [HttpPost]
+    [HttpPost("etkinlik/{publicId:length(8)}/sil")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(string publicId)
     {
         var userId = CurrentUserId;
         var isAdmin = User.IsInRole("Admin");
@@ -375,7 +414,7 @@ public class EventsController : Controller
             // Oluşturan ya da admin silebilir. Mesajlar, katılımcılar ve okuma kayıtları
             // veritabanındaki cascade kuralıyla birlikte silinir.
             var deleted = await _context.Events
-                .Where(e => e.Eventid == id && (e.Createdbyuserid == userId || isAdmin))
+                .Where(e => e.Publicid == publicId && (e.Createdbyuserid == userId || isAdmin))
                 .ExecuteDeleteAsync();
 
             if (deleted == 0)
@@ -384,7 +423,8 @@ public class EventsController : Controller
         catch (Exception ex) when (ex is DbUpdateException or Npgsql.PostgresException)
         {
             TempData["ErrorMessage"] = "Etkinlik silinemedi. Lütfen daha sonra tekrar deneyin.";
-            return RedirectToAction(nameof(Details), new { id });
+            // Slug'sız adres de çalışır: Details güncel adrese yönlendirir.
+            return RedirectToAction(nameof(Details), new { slugId = publicId });
         }
 
         TempData["SuccessMessage"] = "Etkinlik silindi.";
@@ -426,6 +466,10 @@ public class EventsController : Controller
         return (lat, lng, dateUtc);
     }
 
+    // events.publicid benzersiz kısıtı (uq_events_publicid) ihlal edildi mi?
+    private static bool IsPublicIdCollision(DbUpdateException ex) =>
+        ex.InnerException is Npgsql.PostgresException { SqlState: "23505", ConstraintName: "uq_events_publicid" };
+
     private async Task FillFormViewDataAsync(List<string>? categories = null)
     {
         ViewData["Categories"] = categories ?? await GetCategoriesAsync();
@@ -435,16 +479,16 @@ public class EventsController : Controller
     // ---------- KATIL / AYRIL ----------
 
     [Authorize]
-    [HttpPost]
+    [HttpPost("etkinlik/{publicId:length(8)}/katil")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Join(int id)
+    public async Task<IActionResult> Join(string publicId)
     {
         var userId = CurrentUserId;
 
         // Etkinliği, sadece bu kullanıcının katılımcı kaydıyla birlikte yükle.
         var ev = await _context.Events
             .Include(e => e.Users.Where(u => u.Userid == userId))
-            .FirstOrDefaultAsync(e => e.Eventid == id && e.Isapproved);
+            .FirstOrDefaultAsync(e => e.Publicid == publicId && e.Isapproved);
 
         if (ev == null)
             return NotFound();
@@ -468,19 +512,20 @@ public class EventsController : Controller
             TempData["SuccessMessage"] = "Etkinliğe katıldınız.";
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details),
+            new { slugId = SlugHelper.Compose(ev.Eventname, ev.Publicid) });
     }
 
     [Authorize]
-    [HttpPost]
+    [HttpPost("etkinlik/{publicId:length(8)}/ayril")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Leave(int id)
+    public async Task<IActionResult> Leave(string publicId)
     {
         var userId = CurrentUserId;
 
         var ev = await _context.Events
             .Include(e => e.Users.Where(u => u.Userid == userId))
-            .FirstOrDefaultAsync(e => e.Eventid == id && e.Isapproved);
+            .FirstOrDefaultAsync(e => e.Publicid == publicId && e.Isapproved);
 
         if (ev == null)
             return NotFound();
@@ -497,6 +542,7 @@ public class EventsController : Controller
             TempData["SuccessMessage"] = "Etkinlikten ayrıldınız.";
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details),
+            new { slugId = SlugHelper.Compose(ev.Eventname, ev.Publicid) });
     }
 }

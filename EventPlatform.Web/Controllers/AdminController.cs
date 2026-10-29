@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +43,7 @@ public class AdminController : Controller
                 .Select(e => new AdminEventRow
                 {
                     Eventid = e.Eventid,
+                    Publicid = e.Publicid,
                     Eventname = e.Eventname,
                     Description = e.Description,
                     Date = e.Date,
