@@ -1,68 +1,133 @@
-# EventPlatform Proje Notları
+# EventPlatform: Proje notları
 
-Bu belge projedeki kararları ve nedenlerini içerir. Mülakatta "neden böyle yaptın?" sorularına cevap hazırlığı olarak da kullanılır.
+Bu dosya, projeyi yaparken verdiğim kararları ve nedenlerini içerir. Canlı demo: https://eventplatform-wvls.onrender.com
 
-## 1. Mimari
+## 1. Proje nedir?
 
-- **ASP.NET Core MVC (.NET 10):** Sunucu tarafında Razor view'lar. Sayfa yönlendirme, form doğrulama ve yetkilendirme tek yerde, JavaScript yalnızca gereken yerlerde (harita, chat, tarih seçici).
-- **Katmanlar:** Controller → EF Core `AppDbContext` → PostgreSQL. Formlar için ayrı **ViewModel**'ler kullanıldı; entity'ler doğrudan formlara bağlanmaz.
-- **Veritabanı-önce (database-first):** Şema Neon üzerinde SQL ile kuruldu, entity'ler ondan üretildi. Sebep: şemayı (kısıtlar, indeksler, cascade) doğrudan kontrol etmek.
-- **Gerçek zamanlı chat:** SignalR. Her etkinlik için bir grup (`event-{id}`). Sunucu, her hub çağrısında kullanıcının o etkinliğin sohbetine erişim hakkını yeniden doğrular; grup adını bilmek yetmez.
-- **Okunmamış mesaj rozeti:** Her kullanıcı ve etkinlik için tek satırlık "okuma işareti" tablosu (`eventreadstatus`, son okunma zamanı). Rozet, sorgu anında bu işaretten sonra gelen başkalarının mesajları sayılarak hesaplanır; mesaj başına okundu kaydı tutulmaz, bu yüzden ucuzdur.
+Kullanıcıların etkinlik oluşturup keşfettiği, katıldığı ve katılımcılarla gerçek zamanlı sohbet ettiği bir web uygulaması. Haritadan konum seçilir, ilgi alanlarına göre etkinlik filtrelenir, yöneticiler uygunsuz içeriği yayından kaldırabilir.
 
-## 2. Veritabanı kararları
+Amacım yalnızca çalışan bir uygulama değil, **savunabildiğim kararlarla yazılmış** bir proje çıkarmaktı: güvenlik, veri tutarlılığı, hata durumları ve yayına alma süreci dahil.
 
-- **Sütun uzunlukları, form sınırlarından küçük olmamalı.** İki kez yaşadığımız hata: formda 255 karakter serbestken sütun `varchar(100)` olduğu için `22001 (value too long)` hatası alındı. Kural: önce form sınırı belirlenir, sütun en az o kadar olur. Sonradan tüm kullanıcı alanları gözden geçirildi.
-- **Zaman:** Sütunlar `timestamp without time zone`. Her zaman UTC saklanır; Npgsql için `DateTimeKind.Unspecified` yapılır. Gösterim tarayıcıda yerel saate çevrilir (JS), form girişi de UTC'ye çevrilerek gönderilir.
-- **Büyük/küçük harfe duyarsız benzersiz kullanıcı adı:** `lower(username)` üzerinde benzersiz indeks. `Ali` ve `ali` aynı kullanıcı adı sayılır.
-- **Cascade silme:** Kullanıcı ya da etkinlik silinince bağlı kayıtlar (mesaj, katılım, okuma işareti) yetim kalmasın diye yabancı anahtarlar cascade tanımlı.
-- **İlgi alanları:** `userinterests` ayrı bir gerçek entity (ek `Time` sütunu olduğu için); kategoriler `interests` tablosundan okunur, koda gömülü değildir.
-- **Arama:** `ILike` ve kaçışlanmış desen. Kullanıcının yazdığı `%` ve `_` karakterleri joker olarak yorumlanmaz.
-- **Sorgu performansı:** Salt okunur sorgularda `AsNoTracking`, listelerde yalnızca gereken alanları çeken `Select` projeksiyonu, toplu güncellemelerde `ExecuteUpdateAsync`.
+## 2. Teknoloji ve mimari
 
-## 3. Güvenlik önlemleri ve nedenleri
+| Katman | Seçim | Neden |
+|---|---|---|
+| Web | ASP.NET Core MVC (.NET 10) | Sunucu tarafı render, basit ve güvenli varsayılanlar (anti-forgery, otomatik HTML kodlama) |
+| Veri | Entity Framework Core, database-first | Şemayı SQL ile ben tasarladım, sınıflar veritabanından üretildi |
+| Veritabanı | PostgreSQL (Neon) | Ücretsiz katmanı var, yerel ve canlı ortam aynı veritabanını kullanabiliyor |
+| Gerçek zamanlı | SignalR | WebSocket'i yönetir, gerekirse otomatik olarak başka yönteme düşer |
+| Harita | Google Maps JavaScript API | Yer arama (Places), adres çözme (Geocoding) |
+| Arayüz | Razor, Bootstrap 5, vanilla JS, flatpickr | Ek framework gerektirmeden hızlı ve okunur |
+| Yayın | Docker, Render | Her ortamda aynı şekilde çalışır, GitHub'a push'ta otomatik yayın |
 
-| Önlem | Neden |
-|---|---|
-| BCrypt ile şifre hash'i | Veritabanı sızarsa şifreler düz okunamaz; hash bilerek yavaştır. |
-| Kullanıcı yok / şifre yanlış için aynı hata mesajı | Kullanıcı adı numaralandırmasını (hangi hesap var?) engeller. |
-| Anti-forgery token | Başka bir siteden kullanıcı adına form gönderilmesini (CSRF) engeller. |
-| `Url.IsLocalUrl` ile returnUrl kontrolü | Giriş sonrası dış siteye yönlendirmeyi (open redirect) engeller. |
-| ViewModel + sunucu doğrulaması | Over-posting engellenir; `Role` alanı hiçbir formdan okunmaz. |
-| Razor otomatik encode, chat'te `textContent` | XSS: `<b>test</b>` yazan biri etiket değil düz metin görür (test edildi). |
-| Kimlik her zaman cookie claim'lerinden | İstemciden gelen kullanıcı id'sine güvenilmez. |
-| Cookie: HttpOnly, Secure, SameSite=Lax, kayan süre | Script erişimini, düz HTTP'de sızmayı ve çapraz site isteklerini azaltır. |
-| Ad/kullanıcı adı karakter beyaz listesi | Sadece yaygın karakterlere izin; hem sunucuda hem istemcide aynı regex. |
-| Sırlar kodda değil | Yerelde user-secrets, canlıda ortam değişkeni. Repo geçmişi, sır sızıntısı için taranarak yayınlandı. |
-| Maps anahtarı kısıtlı | Yalnızca ilgili siteler (referrer) ve yalnızca kullanılan API'ler; bütçe uyarısı açık. |
-| Data Protection anahtarları DB'de, sertifikayla şifreli | Konteyner diski geçici; yeniden başlatmada oturumlar düşmesin. DB'ye erişen biri cookie üretemesin diye anahtar XML'i sertifikayla şifrelenir, sertifika yalnızca ortam değişkeninde. |
-| Hata sayfaları | Canlıda ayrıntılı hata gösterilmez; 404/403/500 için siteye uygun sayfalar. |
+Kod yapısı: Controller'lar ince tutuldu, formlar için ayrı **ViewModel** sınıfları kullanıldı, veritabanı sınıfları (entity) doğrudan ekrana ya da formlara bağlanmadı.
 
-## 4. Dağıtım
+## 3. Veritabanı kararları
 
-- **Docker çok aşamalı build:** SDK imajıyla derlenir, çalışma zamanında yalnızca ASP.NET çalışma imajı kullanılır; root olmayan kullanıcıyla çalışır.
-- **Render:** Web Service (Docker). Sağlık kontrolü `/healthz` (veritabanına dokunmaz, böylece Neon boş yere uyandırılmaz).
-- **Ters vekil arkasında çalışma:** Render TLS'i kenarda sonlandırır. `ForwardedHeaders` ile uygulama doğru şemayı (https) ve istemci adresini görür; aksi halde `Secure` cookie ve yönlendirmeler bozulur.
-- **Yapılandırma:** `ConnectionStrings__DefaultConnection`, `GoogleMaps__ApiKey`, `DataProtection__CertificateBase64`, `DataProtection__CertificatePassword` (çift alt çizgi, .NET'te `:` yerine).
-- **Ücretsiz plan:** 15 dakika boşta kalınca uyur; bir dış izleme servisi `/healthz`'e istek atarak uyanık tutar. Neon bilerek uyanık tutulmaz (ücretsiz işlem saati sınırı), uyanması yaklaşık 1 sn sürer.
+- **Tarihler UTC saklanır.** Sütunlar `timestamp without time zone`. Npgsql bu tipte `Kind = Unspecified` bekler, bu yüzden tarihleri yazarken `DateTime.SpecifyKind(..., Unspecified)` kullanıyorum. Tarayıcı UTC değeri kullanıcının yerel saatine çevirir (`<time>` etiketi + küçük bir JS dosyası). Formdan gelen yerel saat, tarayıcının saat dilimi farkıyla UTC'ye çevrilir.
+- **Katılımcı sayısı.** `participants` tablosunda etkinliği oluşturan kişi yok. Gösterilen sayı = katılımcılar (oluşturan hariç) + 1, böylece hiç katılımcı yokken "0" değil "1" görünür.
+- **Silme zinciri.** Etkinlik silinince mesajlar, katılımcı kayıtları ve okuma kayıtları veritabanındaki `ON DELETE CASCADE` ile silinir. Puan tablosundaki `eventid` ise `SET NULL`: etkinlik silinse de kullanıcının puan geçmişi kalır.
+- **Sütun uzunlukları form sınırlarından büyük ya da eşit** tutuldu. Aksi halde doğrulamadan geçen bir veri veritabanında hata verirdi.
+- **Etkinlik kısa kodu (`publicid`).** Bölüm 8'de anlatılıyor.
 
-## 5. Yaşanan sorunlar ve çıkarılan dersler
+## 4. Güvenlik kararları
 
-- **Sonsuz yükleme (view özyinelemesi):** Bir ViewComponent'in view dosyasına yanlışlıkla tüm `_Layout` yapıştırılmıştı. Layout → bileşen → layout diye sonsuz döngü oluştu. Bulma yöntemi: bileşen çağrısını yorum satırı yapıp siteyi ikiye bölerek aramak (bisect). Ders: şüphelendiğin yeri erken izole et, dosya içeriğini komutla doğrula.
-- **Chat baloncuğu bozulması:** Sunucuda üretilen geçmiş HTML'i ile JS'in ürettiği HTML farklıydı. Geçmiş de aynı JS fonksiyonuyla (JSON'dan) çizilerek tek kaynağa indirildi.
-- **Sütun uzunluğu uyuşmazlığı:** Bkz. veritabanı kararları.
-- **Kimlik ve CSRF gibi konularda "formdan gelene güvenme" ilkesi:** Rol, kullanıcı id'si ve yetki her zaman sunucuda belirlenir.
+- **Şifreler BCrypt ile hashlenir.** Giriş hatasında "kullanıcı yok" ile "şifre yanlış" aynı mesajı verir, böylece kullanıcı adı denenerek hesap listesi çıkarılamaz.
+- **Anti-forgery token** tüm durum değiştiren isteklerde (POST) zorunlu.
+- **Open redirect koruması.** Giriş sonrası `returnUrl` yalnızca `Url.IsLocalUrl` ile yerel ise kullanılır.
+- **Aşırı veri gönderme (over-posting) engellendi.** Formlar ViewModel ile bağlanır; sunucunun belirlediği alanlar (`Isapproved`, rol, oluşturan kullanıcı) `[BindNever]` ya da hiç modelde yok. Rol asla formdan alınmaz, cookie'deki claim'den okunur.
+- **Sahiplik kontrolü sorgunun içinde.** Düzenleme ve silmede `Where(e => e.Publicid == kod && e.Createdbyuserid == ben)` kullanılır. Başkasının etkinliği için sonuç "bulunamadı" (404) olur; böylece hem yetkisiz erişim (IDOR) engellenir hem de etkinliğin var olduğu sızmaz.
+- **XSS.** Razor çıktıyı otomatik kodlar. Sohbet mesajları `textContent` ile basılır, `innerHTML` kullanılmaz. Sohbet geçmişi sayfaya JSON olarak gömülür; `JsonSerializer` varsayılan olarak `<`, `>`, `&` karakterlerini kaçırır, bu yüzden `<script>` içinde güvenlidir.
+- **Arama.** `ILIKE` deseninde `%`, `_`, `\` karakterleri kaçırılır; kullanıcı girdisi desen olarak yorumlanmaz. Arama metni 100 karakterle sınırlı.
+- **Cookie.** `HttpOnly`, `Secure`, `SameSite=Lax`, 2 saat kayan süre.
+- **Gizli bilgiler repoda yok.** Bağlantı dizesi, Maps anahtarı ve sertifika yerelde user-secrets, canlıda ortam değişkenlerinden gelir. `.gitignore` bunlar için de kural içerir. Bir sır başka biriyle paylaşılırsa tek çözüm onu yenilemektir; bu yüzden hepsi koda değil ortam değişkenine bağlı, değiştirmek kolay.
+- **Maps anahtarı kısıtlı.** Yalnızca site adresleri (HTTP referrer) ve yalnızca gereken API'ler için geçerli. Daha önce başkasına ait bir anahtarı kullanmadım; kendi anahtarımı oluşturdum.
+- **Sohbet yetkisi sunucuda her çağrıda denetlenir.** İstemcideki "katıldım" bilgisine güvenilmez (Bölüm 7).
 
-## 6. Bilinen sınırlar ve sonraki adımlar
+## 5. Etkinlik yayını ve moderasyon kararı
 
-- Profil fotoğrafı yükleme yok: Render diski geçici, kalıcı bir depolama (nesne depolama) gerekir.
-- Şifre sıfırlama e-postası, etkinlik davetleri/katılım istekleri ve puan sistemi planlandı ama henüz uygulanmadı.
-- Şema script'i veritabanında elle kuruldu; yeniden üretilebilir bir `schema.sql` eklenebilir.
+**Soru:** Etkinlikler yayınlanmadan önce admin onayı gerekmeli mi?
 
-## 7. Mülakat için kısa cevaplar
+**Karar:** Hayır. Etkinlikler oluşturulunca hemen yayınlanır; admin uygunsuz olanı sonradan **yayından kaldırabilir** ya da geri alabilir.
 
-- **Neden SignalR?** Çift yönlü gerçek zamanlı iletişim; WebSocket'i, mümkün değilse yedek yöntemleri otomatik yönetir; ASP.NET Core kimlik doğrulamasıyla aynı cookie'yi kullanır.
-- **Okunmamış mesajı nasıl saydın?** Mesaj başına değil, kullanıcı-etkinlik başına "son okunma zamanı" tuttum; sayı sorgu anında hesaplanıyor. Depolama küçük, güncelleme tek satır.
-- **Oturumlar yeniden başlatmada neden düşmüyor?** Şifreleme anahtarlarını DB'de, sertifikayla şifreli tutuyorum; yeni konteyner aynı anahtarları okur.
-- **Bir güvenlik açığını nasıl önledin?** (Örnek: XSS) Çıktı encode'u, chat'te `textContent`, ve test: `<b>test</b>` düz metin görünüyor.
-- **Ölçeklenme?** Tek örnek için tasarlandı. Birden fazla örnekte SignalR için bir backplane (Redis ya da Azure SignalR) gerekir; bunu bilinen sınır olarak belirtiyorum.
+**Neden:**
+- Onay beklemek yeni kullanıcı için ilk deneyimi bozar; küçük bir platformda tek admin bir darboğaz olur.
+- Düzenleme de onay gerektirseydi, her küçük düzeltme yeniden onaya girerdi; sistem karmaşıklaşırdı.
+- Risk, yayından kaldırma ve silme yetkisiyle yönetilebilir. Yayından kaldırma geri alınabilir, silme alınamaz; bu yüzden önce kaldırma tercih edilir.
+
+**Uygulama:** `events.isapproved` sütunu artık "yayında mı" anlamına gelir (sütun adı değişmedi, anlamı değişti; bunu kod yorumlarında belirttim). Yayında olmayan etkinliği yalnızca oluşturan, katılımcılar ve admin görebilir; listelerde herkese kapalıdır. Yayında olmayan etkinlikte sohbet, katılma ve ayrılma kapalıdır.
+
+## 6. Düzenleme ve silme
+
+- Yalnızca oluşturan düzenleyebilir; **geçmiş etkinlik düzenlenemez**.
+- Silme: oluşturan ya da admin. Silmeden önce tarayıcıda onay istenir.
+- "Etkinliklerim" sayfası: oluşturduklarım (durumuyla: yayında / yayından kaldırıldı / sona erdi) ve katıldıklarım.
+- Düzenleme formu kayıtlı UTC saati kullanıcının yerel saatine çevirerek açar; kaydederken tekrar UTC'ye çevrilir.
+
+## 7. Gerçek zamanlı sohbet (SignalR)
+
+- Her etkinliğin kendi grubu var (`event-{id}`). Mesaj yalnızca o gruba yayınlanır.
+- **Yetki her çağrıda sunucuda kontrol edilir:** etkinlik yayında mı, çağıran oluşturan ya da katılımcı mı?
+- **Hata fırlatmak yerine sonuç döndürme.** Hub metotları `"ok" | "no-access" | "invalid"` döndürür. İlk sürümde yetkisiz çağrıda `HubException` fırlatıyordum; bu hem geliştirme ortamında hata penceresi açıyordu hem de normal bir durumu (ör. etkinliğin yayından kaldırılması) hata gibi ele alıyordu.
+- **Erişim kaybı.** Sohbet açıkken etkinlik yayından kaldırılır ya da kullanıcı ayrılırsa, sunucu `no-access` döner; istemci uyarıyı gösterip sayfayı yeniler. Kullanıcı gruptan da çıkarılır, canlı mesaj almaya devam etmez.
+- **Okunmamış mesaj rozeti.** Her kullanıcı için etkinlik başına "son okuma zamanı" tutulur (`eventreadstatus`). Navbar'daki rozet, bu zamandan sonra başkalarının yazdığı mesajları sayar.
+- Mesaj uzunluğu 1000 karakterle sınırlı; boş mesaj kabul edilmez.
+- Sohbet geçmişi: son 50 mesaj sayfayla birlikte gelir, canlı mesajlar aynı JS koduyla eklenir.
+
+## 8. Etkinlik adresleri
+
+Adresler `/etkinlik/kadikoy-sahil-fotograf-yuruyusu-k7x2m9ab` biçiminde: etkinlik adından üretilen okunabilir bir yazı (slug) ve 8 karakterlik rastgele bir kısa kod.
+
+- **Neden sıralı numara değil?** `/Events/Details/7` hem çirkin hem de etkinlik sayısını ve sırasını gösteriyor. Kısa kod kriptografik rastgele sayı üreticisiyle üretilir, tahmin edilemez.
+- **Etkinliği bulan şey koddur.** Slug yalnızca okunabilirlik içindir. Etkinlik adı değişirse eski slug'lı adres güncel adrese yönlendirilir, bağlantılar bozulmaz.
+- **Kod benzersizdir.** Veritabanında benzersiz kısıt var. Çok düşük ihtimalle çakışırsa uygulama yeni kod üretip tekrar dener.
+- Düzenleme, silme, katılma ve ayrılma adresleri de aynı koda dayanır (`/etkinlik/{kod}/duzenle`, `/sil`, `/katil`, `/ayril`).
+- **Türkçe karakterler** (ç, ğ, ı, ö, ş, ü) kendi eşleme tablosuyla çevrilir. Yerleşik normalizasyon kullanılmadı, çünkü bazı sunucu ortamlarında ICU kurulu olmayabilir.
+- **Eski `/Events/Details/7` adreslerini bilerek yönlendirmedim.** Sıralı numarayı çalışır halde tutmak amacıma aykırıydı ve site yeni olduğu için korunması gereken eski bağlantı yoktu. Önce yönlendirmeyi yazmıştım, sonra kaldırdım.
+
+## 9. Yöneticiler ve sohbet gizliliği
+
+Yöneticiler, katılımcı olmasalar bile bir etkinliğin sohbet geçmişini **salt okunur** görebilir. Amaç moderasyon: uygunsuz içerik bildirildiğinde yönetici bakıp etkinliği yayından kaldırabilmeli.
+
+- Yönetici mesaj yazamaz ve canlı akışa bağlanmaz. Sohbet yetkisi sunucuda her çağrıda ayrıca denetlendiği için görüntüleme ayrıcalığı yazma ayrıcalığına dönüşmez.
+- Yönetici bakınca mesajlar "okundu" işaretlenmez, böylece katılımcıların bildirim rozeti etkilenmez.
+- Bu bir gizlilik kararıdır. Kullanıcılar sohbet kutusunun altındaki notla bilgilendirilir: "Moderasyon amacıyla yöneticiler bu sohbeti görebilir."
+- Gerçek bir ürün için ek önlemler gerekir: yönetici erişimini kaydeden bir denetim günlüğü, şikâyet gelmeden bakmayı kısıtlayan bir kural ve gizlilik politikasında açık bir madde.
+
+## 10. Harita ve konum
+
+- Konum iki yolla seçilir: **yer arama** (Places otomatik tamamlama) ya da haritaya tıklama. Tıklamada koordinat adrese çevrilir (Geocoding).
+- Harita ve arayüz Türkçe: betik adresine `language=tr&region=TR` eklendi.
+- Koordinatlar sunucuda yeniden doğrulanır (sayı mı, geçerli aralıkta mı); noktalı ondalık kültürden bağımsız (`InvariantCulture`) ayrıştırılır. Konum seçilmemişse form kabul edilmez.
+- Kullanılan Google bileşeni ve olayların adı sürüme göre değişebiliyor (`gmp-select` / `gmp-placeselect`); kodda her ikisi de dinleniyor.
+
+## 11. Yayına alma
+
+- **Docker**: çok aşamalı derleme (SDK imajında derle, çalışma imajına yalnızca çıktıyı kopyala), uygulama 10000 portunu dinler, root olmayan kullanıcıyla çalışır.
+- **Render** GitHub'daki `main` dalını izler; push'ta otomatik yeniden yayınlar. Ayarlar ortam değişkenleriyle verilir.
+- **Ters vekil (proxy) başlıkları.** Render'ın önündeki yük dengeleyici HTTPS'i sonlandırır. `X-Forwarded-For/Proto` başlıkları işlenmezse uygulama kendini HTTP sanır, "Secure" cookie ve yönlendirmeler bozulur. `UseForwardedHeaders` bu yüzden ardışık işlemin en başında.
+- **Veri koruma anahtarları veritabanında ve şifreli.** ASP.NET Core, cookie ve anti-forgery verisini şifrelemek için anahtarlar üretir. Varsayılan olarak bunlar sunucu diskinde durur; konteyner yeniden başlayınca silinir ve herkesin oturumu düşer. Anahtarları Neon'daki `dataprotectionkeys` tablosuna taşıdım ve kendi ürettiğim bir sertifikayla şifreledim; sertifika (base64) ve parolası ortam değişkenlerinde. Doğrulama: tablodaki XML'de `EncryptedData` bulunur.
+- **`/healthz`** sağlık kontrolü adresi; yönlendirme ve kimlik doğrulama gerektirmez.
+- **Soğuk başlangıç.** Render'ın ücretsiz katmanı 15 dakika kullanılmayınca uykuya geçer; ilk istek bir dakikaya kadar sürebilir. Neon da boştayken uyur. README'de bunu açıkça belirttim. Dış bir izleme servisi `/healthz`'i düzenli çağırarak uygulamayı uyanık tutabilir; Neon'u bilerek uyanık tutmuyorum.
+- HTTPS yönlendirmesini uygulama yalnızca geliştirmede yapar; canlıda bunu Render'ın yük dengeleyicisi yönetir. HSTS yalnızca canlıda açık.
+
+## 12. Karşılaşılan sorunlar ve ders çıkardıklarım
+
+1. **Sırların yönetimi.** Bağlantı dizesi, API anahtarı ve sertifika yalnızca ortam değişkeni ya da user-secrets'te durur, repoya hiç girmez.
+2. **Oturumların her yeniden başlatmada düşmesi.** Veri koruma anahtarlarının kalıcı ve şifreli saklanmasıyla çözüldü (Bölüm 11).
+3. **Sohbette hata penceresi.** Yetkisiz hub çağrısında istisna fırlatmak yerine sonuç döndürmeye geçtim (Bölüm 7).
+4. **Katılımcı sayısı 0 görünmesi.** Oluşturan `participants` tablosunda değil; sayıya +1 eklendi.
+5. **Tarih/saat dilimi.** UTC sakla, tarayıcıda yerele çevir; formdan gelen yerel saati UTC'ye çevir.
+6. **Sütun uzunluğu uyuşmazlığı.** Form sınırları veritabanı sütunlarından büyük olunca doğrulamadan geçen veri kayıtta hata verdi; sütunlar form sınırlarına göre ayarlandı.
+7. **Arayüz dili karışıklığı.** Kategori adları veritabanında İngilizce, ekranda Türkçe olmalıydı: gösterim için ayrı bir eşleme (`CategoryStyle.Label`) kullanıyorum, veri değişmiyor.
+
+## 13. Bilinen sınırlar (bilerek yapılmadı)
+
+- **Otomatik test henüz yok.** Planlandı: slug üretici ve doğrulama mantığı için birim testler, GitHub Actions ile derleme.
+- Şifre sıfırlama ve e-posta doğrulama yok (e-posta gönderen bir servis gerektirir).
+- Profil fotoğrafı yok (dosya saklama kararı gerektirir).
+- Kullanıcı sayısı arttığında sayfalama yok; etkinlik listesi tek sayfada.
+- İstek hızı sınırlama (rate limiting) ve şikâyet/raporlama düğmesi yok.
+- Sohbet mesajı düzenleme ve silme yok.
+- Admin işlemleri için denetim günlüğü yok.
+- Ücretsiz katmanlar nedeniyle soğuk başlangıç gecikmesi var.
