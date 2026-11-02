@@ -4,6 +4,7 @@ using EventPlatform.Web.Helpers;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
+using EventPlatform.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,11 +18,13 @@ public class EventsController : Controller
 
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly NotificationService _notifications;
 
-    public EventsController(AppDbContext context, IConfiguration configuration)
+    public EventsController(AppDbContext context, IConfiguration configuration, NotificationService notifications)
     {
         _context = context;
         _configuration = configuration;
+        _notifications = notifications;
     }
 
     // Giriş yapmamışsa 0 döner (veritabanında 0 id'li kullanıcı yok).
@@ -511,6 +514,9 @@ public class EventsController : Controller
             ev.Users.Add(user);
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = "Etkinliğe katıldınız.";
+
+            // Etkinliğin sahibine haber ver (kendi etkinliğine katılma durumu zaten yukarıda elendi).
+            await _notifications.NotifyAsync(ev.Createdbyuserid, NotificationTypes.EventJoined, userId, ev.Eventid);
         }
 
         return RedirectToAction(nameof(Details),
@@ -541,6 +547,9 @@ public class EventsController : Controller
             ev.Users.Remove(me);
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = "Etkinlikten ayrıldınız.";
+
+            // Artık geçerli olmayan "katıldı" bildirimini sahibin listesinden kaldır.
+            await _notifications.RemoveAsync(ev.Createdbyuserid, NotificationTypes.EventJoined, userId, ev.Eventid);
         }
 
         return RedirectToAction(nameof(Details),

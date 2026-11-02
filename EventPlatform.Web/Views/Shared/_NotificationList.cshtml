@@ -1,0 +1,51 @@
+@using EventPlatform.Web.Helpers
+@using EventPlatform.Web.Models
+@using EventPlatform.Web.Models.ViewModels
+@model NotificationPanelViewModel
+
+@* Zil menüsü ve bildirimler sayfasında ortak liste. data-unread: JavaScript rozeti buradan günceller. *@
+<div data-unread="@Model.Unread">
+    @if (Model.Items.Count == 0)
+    {
+        <div class="px-3 py-4 text-center text-muted small">@(Model.UnreadOnly ? "Yeni bildirimin yok." : "Henüz bildirimin yok.")</div>
+    }
+    else
+    {
+        <div class="list-group list-group-flush">
+            @foreach (var n in Model.Items)
+            {
+                <div class="list-group-item list-group-item-action @(n.IsRead ? "" : "bg-primary-subtle")">
+                    <div class="d-flex gap-3 align-items-start">
+                        <a asp-controller="Notifications" asp-action="Open" asp-route-id="@n.Id"
+                           class="d-flex gap-3 align-items-start flex-grow-1 text-reset text-decoration-none">
+                            <i class="bi @NotificationText.Icon(n.Type) fs-5 text-primary"></i>
+                            <span class="flex-grow-1">
+                                <span class="d-block small">@NotificationText.Text(n)</span>
+                                <span class="d-block text-muted" style="font-size: 0.75rem;">@NotificationText.Ago(n.CreatedAt)</span>
+                            </span>
+                        </a>
+                        @if (!n.IsRead)
+                        {
+                            <span class="badge rounded-pill bg-primary mt-1">&nbsp;</span>
+                        }
+                    </div>
+
+                    @* Bekleyen arkadaşlık isteği: bildirim, istek yanıtlanınca silindiği için burada hâlâ varsa istek bekliyordur. *@
+                    @if (n.Type == NotificationTypes.FriendRequest && n.ActorUsername != null)
+                    {
+                        <div class="d-flex gap-2 mt-2" style="padding-left: 2.1rem;">
+                            <form asp-controller="Friends" asp-action="Accept" asp-route-username="@n.ActorUsername" method="post" data-notif-action>
+                                <input type="hidden" name="returnUrl" value="/bildirimler" />
+                                <button type="submit" class="btn btn-primary btn-sm">Kabul et</button>
+                            </form>
+                            <form asp-controller="Friends" asp-action="Decline" asp-route-username="@n.ActorUsername" method="post" data-notif-action>
+                                <input type="hidden" name="returnUrl" value="/bildirimler" />
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Reddet</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

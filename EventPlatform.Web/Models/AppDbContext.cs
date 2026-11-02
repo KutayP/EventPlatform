@@ -28,11 +28,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Message> Messages { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
     public virtual DbSet<Point> Points { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<Userinterest> Userinterests { get; set; }
+
+    public virtual DbSet<Usersetting> Usersettings { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -329,6 +333,77 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.Userid)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("userinterests_userid_fkey");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Notificationid).HasName("notifications_pkey");
+
+            entity.ToTable("notifications");
+
+            entity.HasIndex(e => new { e.Userid, e.Createdat }, "idx_notifications_user_created").IsDescending(false, true);
+
+            entity.Property(e => e.Notificationid).HasColumnName("notificationid");
+            entity.Property(e => e.Userid).HasColumnName("userid");
+            entity.Property(e => e.Type)
+                .HasMaxLength(30)
+                .HasColumnName("type");
+            entity.Property(e => e.Actorid).HasColumnName("actorid");
+            entity.Property(e => e.Eventid).HasColumnName("eventid");
+            entity.Property(e => e.Createdat)
+                .HasDefaultValueSql("(now() AT TIME ZONE 'utc')")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Readat)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("readat");
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.Userid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("notifications_userid_fkey");
+
+            entity.HasOne(d => d.Actor).WithMany()
+                .HasForeignKey(d => d.Actorid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("notifications_actorid_fkey");
+
+            entity.HasOne(d => d.Event).WithMany()
+                .HasForeignKey(d => d.Eventid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("notifications_eventid_fkey");
+        });
+
+        modelBuilder.Entity<Usersetting>(entity =>
+        {
+            entity.HasKey(e => e.Userid).HasName("usersettings_pkey");
+
+            entity.ToTable("usersettings");
+
+            entity.Property(e => e.Userid)
+                .ValueGeneratedNever()
+                .HasColumnName("userid");
+            entity.Property(e => e.NotifyEventJoined)
+                .HasDefaultValue(true)
+                .HasColumnName("notify_event_joined");
+            entity.Property(e => e.NotifyFriends)
+                .HasDefaultValue(true)
+                .HasColumnName("notify_friends");
+            entity.Property(e => e.NotifyRecommended)
+                .HasDefaultValue(false)
+                .HasColumnName("notify_recommended");
+            entity.Property(e => e.RadiusKm)
+                .HasDefaultValue(50)
+                .HasColumnName("radius_km");
+            entity.Property(e => e.Theme)
+                .HasMaxLength(10)
+                .HasDefaultValue("system")
+                .HasColumnName("theme");
+
+            entity.HasOne(d => d.User).WithOne()
+                .HasForeignKey<Usersetting>(d => d.Userid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("usersettings_userid_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

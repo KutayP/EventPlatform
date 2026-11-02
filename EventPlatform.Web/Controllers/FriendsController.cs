@@ -3,6 +3,7 @@ using EventPlatform.Web.Helpers;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
+using EventPlatform.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,10 +20,12 @@ public class FriendsController : Controller
     private const int MaxPendingRequests = 50;   // istek yağdırmayı sınırlar
 
     private readonly AppDbContext _context;
+    private readonly NotificationService _notifications;
 
-    public FriendsController(AppDbContext context)
+    public FriendsController(AppDbContext context, NotificationService notifications)
     {
         _context = context;
+        _notifications = notifications;
     }
 
     // Kimlik her zaman cookie'den gelir; başkası adına istek göndermek mümkün değil.
@@ -40,6 +43,14 @@ public class FriendsController : Controller
     // İşlemden sonra geldiği sayfaya dön (yalnızca site içi adresler), yoksa arkadaşlar sayfasına.
     private IActionResult Back(string? returnUrl)
     {
+        // Bildirim menüsü gibi JavaScript çağrılarında sayfa değişmez; bir sonraki sayfada eski mesaj çıkmasın.
+        if (Request.Headers.XRequestedWith == "fetch")
+        {
+            TempData.Remove("SuccessMessage");
+            TempData.Remove("ErrorMessage");
+            return NoContent();
+        }
+
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return LocalRedirect(returnUrl);
 
@@ -228,6 +239,7 @@ public class FriendsController : Controller
         {
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = $"{username} kullanıcısına arkadaşlık isteği gönderildi.";
+            await _notifications.NotifyAsync(targetId, NotificationTypes.FriendRequest, me);
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
         {
@@ -241,12 +253,23 @@ public class FriendsController : Controller
     // ---------- KABUL / RED / İPTAL / ÇIKAR ----------
 
     // Yalnızca isteğin muhatabı kabul edebilir: sorgu, "addressee = ben" şartını içerir.
-    private Task<int> AcceptAsync(int requesterId, int addresseeId) =>
-        _context.Friendships
+    private async Task<int> AcceptAsync(int requesterId, int addresseeId)
+    {
+        var updated = await _context.Friendships
             .Where(f => f.Requesterid == requesterId &&
                         f.Addresseeid == addresseeId &&
                         f.Status == FriendshipStatus.Pending)
             .ExecuteUpdateAsync(s => s.SetProperty(f => f.Status, FriendshipStatus.Accepted));
+
+        if (updated > 0)
+        {
+            // Kabul eden kişinin "istek geldi" bildirimi artık geçersiz; isteği gönderene "kabul etti" haberi gider.
+            await _notifications.RemoveAsync(addresseeId, NotificationTypes.FriendRequest, requesterId);
+            await _notifications.NotifyAsync(requesterId, NotificationTypes.FriendAccepted, addresseeId);
+        }
+
+        return updated;
+    }
 
     [HttpPost("arkadaslar/kabul/{username}")]
     [ValidateAntiForgeryToken]
@@ -275,6 +298,9 @@ public class FriendsController : Controller
                         f.Status == FriendshipStatus.Pending)
             .ExecuteDeleteAsync();
 
+        if (deleted > 0)
+            await _notifications.RemoveAsync(me, NotificationTypes.FriendRequest, requesterId);
+
         TempData[deleted > 0 ? "SuccessMessage" : "ErrorMessage"] = deleted > 0
             ? "İstek reddedildi."
             : "Bekleyen bir istek bulunamadı.";
@@ -294,6 +320,9 @@ public class FriendsController : Controller
                         f.Addresseeid == targetId &&
                         f.Status == FriendshipStatus.Pending)
             .ExecuteDeleteAsync();
+
+        if (deleted > 0)
+            await _notifications.RemoveAsync(targetId, NotificationTypes.FriendRequest, me);
 
         TempData[deleted > 0 ? "SuccessMessage" : "ErrorMessage"] = deleted > 0
             ? "İstek iptal edildi."

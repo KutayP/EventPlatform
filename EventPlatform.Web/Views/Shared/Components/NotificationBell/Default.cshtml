@@ -1,0 +1,24 @@
+@using EventPlatform.Web.Models.ViewModels
+@model NotificationPanelViewModel
+
+<li class="nav-item dropdown" id="notif-root">
+    <a class="nav-link text-dark position-relative" href="#" role="button"
+       data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Bildirimler">
+        <i class="bi bi-bell"></i> <span class="d-lg-none">Bildirimler</span>
+        <span id="notif-badge" class="badge rounded-pill bg-danger @(Model.Unread > 0 ? "" : "d-none")">@(Model.Unread > 99 ? "99+" : Model.Unread.ToString())</span>
+    </a>
+    <div class="dropdown-menu dropdown-menu-end p-0 shadow" style="width: 340px; max-width: 92vw;">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+            <strong>Bildirimler</strong>
+            <form asp-controller="Notifications" asp-action="MarkAllRead" method="post" data-notif-readall>
+                <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">Tümünü okundu say</button>
+            </form>
+        </div>
+        <div id="notif-panel" style="max-height: 420px; overflow-y: auto;">
+            <partial name="_NotificationList" model="Model" />
+        </div>
+        <div class="text-center border-top py-2">
+            <a asp-controller="Notifications" asp-action="Index" class="small text-decoration-none">Tümünü gör</a>
+        </div>
+    </div>
+</li>

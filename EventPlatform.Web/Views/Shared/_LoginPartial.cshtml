@@ -14,6 +14,7 @@
     @if (User.Identity!.IsAuthenticated)
     {
         @await Component.InvokeAsync("FriendRequests")
+        @await Component.InvokeAsync("NotificationBell")
         @await Component.InvokeAsync("UnreadMessages")
 
         <li class="nav-item dropdown">

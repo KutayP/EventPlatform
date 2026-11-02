@@ -218,6 +218,65 @@ public class SettingsController : Controller
         return RedirectToAction(nameof(Privacy));
     }
 
+    // ---------- BİLDİRİMLER ----------
+
+    [HttpGet("bildirimler")]
+    public async Task<IActionResult> Notifications()
+    {
+        var s = await _context.Usersettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Userid == CurrentUserId);
+
+        return View(new NotificationSettingsViewModel
+        {
+            NotifyEventJoined = s?.NotifyEventJoined ?? true,
+            NotifyFriends = s?.NotifyFriends ?? true
+        });
+    }
+
+    [HttpPost("bildirimler")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Notifications(NotificationSettingsViewModel input)
+    {
+        var userId = CurrentUserId;
+
+        if (!await _context.Users.AnyAsync(u => u.Userid == userId))
+            return await SignOutAsync();
+
+        var existing = await _context.Usersettings.FirstOrDefaultAsync(x => x.Userid == userId);
+        if (existing == null)
+        {
+            _context.Usersettings.Add(new Usersetting
+            {
+                Userid = userId,
+                NotifyEventJoined = input.NotifyEventJoined,
+                NotifyFriends = input.NotifyFriends
+            });
+        }
+        else
+        {
+            existing.NotifyEventJoined = input.NotifyEventJoined;
+            existing.NotifyFriends = input.NotifyFriends;
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+        {
+            // Aynı anda iki kayıt oluşturuldu: satır artık var, doğrudan güncelle.
+            await _context.Usersettings
+                .Where(x => x.Userid == userId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.NotifyEventJoined, input.NotifyEventJoined)
+                    .SetProperty(x => x.NotifyFriends, input.NotifyFriends));
+        }
+
+        TempData["SuccessMessage"] = "Bildirim ayarların güncellendi.";
+        return RedirectToAction(nameof(Notifications));
+    }
+
     // ---------- GÜVENLİK (ŞİFRE) ----------
 
     [HttpGet("guvenlik")]

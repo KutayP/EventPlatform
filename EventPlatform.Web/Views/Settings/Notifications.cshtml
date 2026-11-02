@@ -1,0 +1,33 @@
+@using EventPlatform.Web.Models.ViewModels
+@model NotificationSettingsViewModel
+
+@{
+    ViewData["Title"] = "Bildirim ayarları";
+    Layout = "_SettingsLayout";
+    ViewData["SettingsSection"] = "notifications";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">Bildirim ayarları</div>
+    <div class="card-body">
+        <p class="text-muted small">Kapattığın türden yeni bildirim almazsın. Mevcut bildirimlerin silinmez.</p>
+
+        <form asp-action="Notifications" method="post">
+            <div class="form-check form-switch mb-3">
+                <input asp-for="NotifyEventJoined" class="form-check-input" role="switch" />
+                <label asp-for="NotifyEventJoined" class="form-check-label">
+                    <strong>Etkinliğime katılım</strong>
+                    <span class="d-block text-muted small">Oluşturduğum bir etkinliğe biri katılınca bildir.</span>
+                </label>
+            </div>
+            <div class="form-check form-switch mb-4">
+                <input asp-for="NotifyFriends" class="form-check-input" role="switch" />
+                <label asp-for="NotifyFriends" class="form-check-label">
+                    <strong>Arkadaşlık</strong>
+                    <span class="d-block text-muted small">Arkadaşlık isteği gelince ya da isteğim kabul edilince bildir.</span>
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+        </form>
+    </div>
+</div>

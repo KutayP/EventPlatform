@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using EventPlatform.Web.Hubs;
 using EventPlatform.Web.Models;
+using EventPlatform.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -12,6 +13,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -87,6 +89,7 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.MapHub<EventChatHub>("/hubs/eventchat");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 // Sağlık kontrolü: veritabanına dokunmaz, yalnızca uygulamanın ayakta olduğunu söyler.
 app.MapGet("/healthz", () => Results.Text("ok"));

@@ -1,0 +1,76 @@
+@using EventPlatform.Web.Models.ViewModels
+@model NotificationPanelViewModel
+
+@{
+    ViewData["Title"] = "Bildirimler";
+
+    // Yaşa göre gruplar (saat dilimi gerektirmez): okunmamışlar "Yeni", okunmuşlar yaşına göre.
+    var now = DateTime.UtcNow;
+    int AgeDays(NotificationItem n) => (int)(now - DateTime.SpecifyKind(n.CreatedAt, DateTimeKind.Utc)).TotalDays;
+
+    var groups = new (string Title, List<NotificationItem> Items)[]
+    {
+        ("Yeni", Model.Items.Where(n => !n.IsRead).ToList()),
+        ("Son 7 gün", Model.Items.Where(n => n.IsRead && AgeDays(n) < 7).ToList()),
+        ("Son 30 gün", Model.Items.Where(n => n.IsRead && AgeDays(n) >= 7 && AgeDays(n) < 30).ToList()),
+        ("Daha önce", Model.Items.Where(n => n.IsRead && AgeDays(n) >= 30).ToList())
+    };
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Bildirimler</h1>
+    <div class="d-flex gap-2">
+        <a asp-controller="Settings" asp-action="Notifications" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-gear"></i> Bildirim ayarları
+        </a>
+        @if (Model.Unread > 0)
+        {
+            <form asp-action="MarkAllRead" method="post">
+                <button type="submit" class="btn btn-outline-primary btn-sm">Tümünü okundu say</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center text-muted py-5">
+            @(Model.Page > 1 ? "Bu sayfada bildirim yok." : "Henüz bildirimin yok.")
+        </div>
+    </div>
+}
+else
+{
+    @foreach (var g in groups.Where(g => g.Items.Count > 0))
+    {
+        <h2 class="h6 text-muted text-uppercase mt-4 mb-2">@g.Title</h2>
+        <div class="card shadow-sm overflow-hidden">
+            <partial name="_NotificationList" model="@(new NotificationPanelViewModel { Items = g.Items, Unread = Model.Unread, Page = Model.Page })" />
+        </div>
+    }
+
+    <nav class="d-flex justify-content-between mt-4" aria-label="Sayfalar">
+        @if (Model.Page > 1)
+        {
+            <a asp-action="Index" asp-route-sayfa="@(Model.Page - 1)" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Daha yeni</a>
+        }
+        else
+        {
+            <span></span>
+        }
+        @if (Model.HasMore)
+        {
+            <a asp-action="Index" asp-route-sayfa="@(Model.Page + 1)" class="btn btn-outline-secondary btn-sm">Daha eski <i class="bi bi-arrow-right"></i></a>
+        }
+    </nav>
+}
