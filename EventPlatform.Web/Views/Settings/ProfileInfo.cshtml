@@ -1,0 +1,71 @@
+@model SettingsProfileViewModel
+
+@{
+    ViewData["Title"] = "Profil bilgileri";
+    Layout = "_SettingsLayout";
+    ViewData["SettingsSection"] = "profile";
+
+    var genders = new[]
+    {
+        new SelectListItem("Erkek", "Male"),
+        new SelectListItem("Kadın", "Female"),
+        new SelectListItem("Non-binary", "NonBinary"),
+        new SelectListItem("Diğer", "Other")
+    };
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">Profil bilgileri</div>
+    <div class="card-body">
+        <form asp-action="ProfileInfo" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Kullanıcı adı</label>
+                    <input class="form-control" value="@Model.Username" disabled />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">E-posta</label>
+                    <input class="form-control" value="@Model.Email" disabled />
+                </div>
+            </div>
+            <p class="text-muted small">Kullanıcı adı ve e-posta değiştirilemez. E-posta kimseye gösterilmez.</p>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Firstname" class="form-label">Ad</label>
+                    <input asp-for="Firstname" class="form-control" />
+                    <span asp-validation-for="Firstname" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Lastname" class="form-label">Soyad</label>
+                    <input asp-for="Lastname" class="form-control" />
+                    <span asp-validation-for="Lastname" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Birthdate" class="form-label">Doğum tarihi</label>
+                    <input asp-for="Birthdate" type="text" class="form-control" autocomplete="off"
+                           data-datepicker="birthdate"
+                           value="@(Model.Birthdate == default ? "" : Model.Birthdate.ToString("yyyy-MM-dd"))" />
+                    <span asp-validation-for="Birthdate" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Gender" class="form-label">Cinsiyet</label>
+                    <select asp-for="Gender" asp-items="genders" class="form-select">
+                        <option value="">Seçin</option>
+                    </select>
+                    <span asp-validation-for="Gender" class="text-danger"></span>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_DatePickerAssets" />
+}

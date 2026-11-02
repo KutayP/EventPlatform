@@ -11,6 +11,8 @@ namespace EventPlatform.Web.Controllers;
 public class HomeController : Controller
 {
     private const int FriendsEventsShown = 3;
+    private const int ReminderDays = 7;
+    private const int RemindersShown = 3;
 
     private readonly AppDbContext _context;
 
@@ -53,6 +55,28 @@ public class HomeController : Controller
         if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
             vm.IsAuthenticated = true;
+
+            // Hatırlatma: önümüzdeki 7 gün içinde oluşturduğum ya da katıldığım (yayındaki) etkinlikler.
+            var soon = now.AddDays(ReminderDays);
+
+            vm.MyUpcoming = await _context.Events
+                .AsNoTracking()
+                .Where(e => e.Isapproved && e.Date >= now && e.Date <= soon &&
+                            (e.Createdbyuserid == userId || e.Users.Any(u => u.Userid == userId)))
+                .OrderBy(e => e.Date)
+                .Take(RemindersShown)
+                .Select(e => new EventListItemViewModel
+                {
+                    Eventid = e.Eventid,
+                    Publicid = e.Publicid,
+                    Eventname = e.Eventname,
+                    Date = e.Date,
+                    Location = e.Location,
+                    Category = e.Category,
+                    ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1,
+                    Note = e.Createdbyuserid == userId ? "Sen oluşturdun" : "Katılıyorsun"
+                })
+                .ToListAsync();
 
             var friendIds = _context.Friendships.FriendIdsOf(userId);
 

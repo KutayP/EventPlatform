@@ -33,6 +33,24 @@
     </div>
 </section>
 
+@if (Model.IsAuthenticated && Model.MyUpcoming.Count > 0)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0">Yaklaşan etkinliklerim</h2>
+            <a asp-controller="Events" asp-action="My" class="text-decoration-none">Etkinliklerim <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var e in Model.MyUpcoming)
+            {
+                <div class="col">
+                    <partial name="_EventCard" model="e" />
+                </div>
+            }
+        </div>
+    </section>
+}
+
 <section class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="h4 mb-0">Yaklaşan etkinlikler</h2>

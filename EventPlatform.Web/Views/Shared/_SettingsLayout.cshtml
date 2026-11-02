@@ -1,0 +1,46 @@
+@{
+    Layout = "_Layout";
+
+    var current = ViewData["SettingsSection"] as string ?? "profile";
+
+    var items = new[]
+    {
+        new { Key = "profile",   Label = "Profil bilgileri", Icon = "bi-person",      Action = "ProfileInfo" },
+        new { Key = "interests", Label = "İlgi alanları",    Icon = "bi-heart",       Action = "Interests" },
+        new { Key = "privacy",   Label = "Gizlilik",         Icon = "bi-shield-lock", Action = "Privacy" },
+        new { Key = "security",  Label = "Güvenlik",         Icon = "bi-key",         Action = "Security" }
+    };
+}
+
+<h1 class="h3 mb-4">Ayarlar</h1>
+
+<div class="row g-4">
+    <div class="col-lg-3">
+        <div class="list-group shadow-sm">
+            @foreach (var item in items)
+            {
+                <a asp-controller="Settings" asp-action="@item.Action"
+                   class="list-group-item list-group-item-action @(current == item.Key ? "active" : "")">
+                    <i class="bi @item.Icon me-2"></i>@item.Label
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-9">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
+        @RenderBody()
+    </div>
+</div>
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

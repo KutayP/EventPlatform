@@ -30,6 +30,9 @@
                 <li>
                     <a class="dropdown-item" asp-controller="Events" asp-action="My">Etkinliklerim</a>
                 </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Settings" asp-action="Index">Ayarlar</a>
+                </li>
                 @if (User.IsInRole("Admin"))
                 {
                     <li>

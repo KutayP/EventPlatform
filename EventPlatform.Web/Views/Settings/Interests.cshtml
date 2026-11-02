@@ -1,0 +1,20 @@
+@model InterestsSettingsViewModel
+
+@{
+    ViewData["Title"] = "İlgi alanları";
+    Layout = "_SettingsLayout";
+    ViewData["SettingsSection"] = "interests";
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">İlgi alanları</div>
+    <div class="card-body">
+        <form asp-action="Interests" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <div class="mb-3">
+                <partial name="_InterestPicker" model="Model.Interests" />
+            </div>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+        </form>
+    </div>
+</div>

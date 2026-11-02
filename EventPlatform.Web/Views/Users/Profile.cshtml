@@ -20,7 +20,7 @@
                 <span>Profilin herkese açık. Başkaları seni böyle görüyor.</span>
             }
         </span>
-        <a asp-controller="Profile" asp-action="Edit" asp-fragment="gorunurluk" class="btn btn-sm btn-outline-secondary">Görünürlüğü değiştir</a>
+        <a asp-controller="Settings" asp-action="Privacy" class="btn btn-sm btn-outline-secondary">Görünürlüğü değiştir</a>
     </div>
 }
 else if (Model.IsAdminViewing)
@@ -34,7 +34,7 @@ else if (Model.IsAdminViewing)
     <div class="card-body text-center p-4 position-relative">
         @if (Model.IsOwner)
         {
-            <a asp-controller="Profile" asp-action="Edit" class="btn btn-outline-secondary btn-sm position-absolute top-0 end-0 m-3">
+            <a asp-controller="Settings" asp-action="ProfileInfo" class="btn btn-outline-secondary btn-sm position-absolute top-0 end-0 m-3">
                 <i class="bi bi-pencil"></i> Profili düzenle
             </a>
         }
