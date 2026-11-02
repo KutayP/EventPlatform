@@ -9,4 +9,7 @@ public class EventListItemViewModel
     public string Location { get; set; } = "";
     public string Category { get; set; } = "";
     public int ParticipantCount { get; set; }
+
+    // Kartta küçük bir açıklama satırı (örn. "deniz_a oluşturdu"). Boşsa gösterilmez.
+    public string? Note { get; set; }
 }

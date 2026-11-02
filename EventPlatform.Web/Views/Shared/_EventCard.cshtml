@@ -14,6 +14,10 @@
 
         <div class="mt-auto text-muted small">
             <div class="text-truncate mb-1" title="@Model.Location"><i class="bi bi-geo-alt"></i> @Model.Location</div>
+            @if (!string.IsNullOrEmpty(Model.Note))
+            {
+                <div class="text-truncate mb-1" title="@Model.Note"><i class="bi bi-person-check"></i> @Model.Note</div>
+            }
             <div>
                 <i class="bi bi-calendar-event"></i>
                 <time class="js-local" datetime="@(Model.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@Model.Date.ToString("dd.MM.yyyy HH:mm") UTC</time>

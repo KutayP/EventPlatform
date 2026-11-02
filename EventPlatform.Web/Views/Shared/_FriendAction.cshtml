@@ -1,0 +1,42 @@
+@model FriendActionModel
+
+@{
+    // İşlemden sonra bu sayfaya dönülür (sunucu yalnızca site içi adreslere izin verir).
+    var returnUrl = Context.Request.Path.Value + Context.Request.QueryString;
+}
+
+@if (Model.Relation == FriendRelation.None)
+{
+    <form asp-controller="Friends" asp-action="SendRequest" asp-route-username="@Model.Username" method="post" class="d-inline">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Arkadaş ekle</button>
+    </form>
+}
+else if (Model.Relation == FriendRelation.RequestSent)
+{
+    <span class="badge bg-light text-dark border me-1">İstek gönderildi</span>
+    <form asp-controller="Friends" asp-action="Cancel" asp-route-username="@Model.Username" method="post" class="d-inline">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <button type="submit" class="btn btn-outline-secondary btn-sm">İptal et</button>
+    </form>
+}
+else if (Model.Relation == FriendRelation.RequestReceived)
+{
+    <form asp-controller="Friends" asp-action="Accept" asp-route-username="@Model.Username" method="post" class="d-inline">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Kabul et</button>
+    </form>
+    <form asp-controller="Friends" asp-action="Decline" asp-route-username="@Model.Username" method="post" class="d-inline">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <button type="submit" class="btn btn-outline-danger btn-sm">Reddet</button>
+    </form>
+}
+else if (Model.Relation == FriendRelation.Friends)
+{
+    <span class="badge bg-light text-dark border me-1"><i class="bi bi-check2"></i> Arkadaşsınız</span>
+    <form asp-controller="Friends" asp-action="Remove" asp-route-username="@Model.Username" method="post" class="d-inline"
+          onsubmit="return confirm('Bu kişi arkadaşlarından çıkarılsın mı?');">
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <button type="submit" class="btn btn-outline-danger btn-sm">Arkadaşlıktan çıkar</button>
+    </form>
+}

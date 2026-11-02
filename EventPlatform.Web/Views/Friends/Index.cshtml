@@ -1,0 +1,96 @@
+@model FriendsIndexViewModel
+
+@{
+    ViewData["Title"] = "Arkadaşlar";
+}
+
+<h1 class="h3 mb-3">Arkadaşlar</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<form method="get" asp-action="Index" class="mb-4">
+    <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="search" name="q" value="@Model.Query" class="form-control" maxlength="30"
+               placeholder="Kullanıcı adı ya da ad ara…" />
+        <button class="btn btn-primary" type="submit">Ara</button>
+    </div>
+</form>
+
+@if (Model.QueryTooShort)
+{
+    <div class="alert alert-info">Aramak için en az 2 karakter yaz.</div>
+}
+else if (Model.Results != null)
+{
+    <div class="card mb-4">
+        <div class="card-header">Arama sonuçları</div>
+        @if (Model.Results.Count == 0)
+        {
+            <div class="card-body text-muted">Eşleşen kullanıcı yok.</div>
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var item in Model.Results)
+                {
+                    <partial name="_FriendRow" model="item" />
+                }
+            </div>
+        }
+    </div>
+}
+
+@if (Model.Incoming.Count > 0)
+{
+    <h2 class="h5 mt-4 mb-3">Gelen istekler <span class="badge bg-danger">@Model.Incoming.Count</span></h2>
+    <div class="card">
+        <div class="list-group list-group-flush">
+            @foreach (var item in Model.Incoming)
+            {
+                <partial name="_FriendRow" model="item" />
+            }
+        </div>
+    </div>
+}
+
+@if (Model.Outgoing.Count > 0)
+{
+    <h2 class="h5 mt-4 mb-3">Gönderdiğim istekler</h2>
+    <div class="card">
+        <div class="list-group list-group-flush">
+            @foreach (var item in Model.Outgoing)
+            {
+                <partial name="_FriendRow" model="item" />
+            }
+        </div>
+    </div>
+}
+
+<h2 class="h5 mt-4 mb-3">Arkadaşlarım (@Model.Friends.Count)</h2>
+@if (Model.Friends.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center text-muted py-4">
+            Henüz arkadaşın yok. Yukarıdan kullanıcı adıyla arayıp istek gönderebilirsin.
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="list-group list-group-flush">
+            @foreach (var item in Model.Friends)
+            {
+                <partial name="_FriendRow" model="item" />
+            }
+        </div>
+    </div>
+}

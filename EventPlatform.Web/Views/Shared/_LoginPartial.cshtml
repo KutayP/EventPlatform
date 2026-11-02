@@ -1,4 +1,4 @@
-﻿@{
+@{
     // Bulunduğumuz sayfa: giriş sonrası buraya dönülecek.
     // Giriş/Kayıt sayfalarındaysak dönülecek bir yer vermiyoruz (döngüye girmesin).
     var currentPath = Context.Request.Path.Value ?? "/";
@@ -13,6 +13,7 @@
 <ul class="navbar-nav ms-auto align-items-lg-center">
     @if (User.Identity!.IsAuthenticated)
     {
+        @await Component.InvokeAsync("FriendRequests")
         @await Component.InvokeAsync("UnreadMessages")
 
         <li class="nav-item dropdown">

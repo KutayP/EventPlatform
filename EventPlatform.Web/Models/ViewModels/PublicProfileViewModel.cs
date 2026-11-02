@@ -15,6 +15,9 @@ public class PublicProfileViewModel
     public bool IsAdminViewing { get; set; }
     public bool IsFriendsOnly { get; set; }
 
+    // Ziyaretçinin bu kullanıcıyla arkadaşlık durumu (düğmeleri belirler).
+    public FriendRelation Relation { get; set; } = FriendRelation.Anonymous;
+
     public int CreatedCount { get; set; }
     public int JoinedCount { get; set; }
 

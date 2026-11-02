@@ -1,0 +1,11 @@
+@model int
+
+<li class="nav-item">
+    <a class="nav-link text-dark" asp-controller="Friends" asp-action="Index">
+        <i class="bi bi-people"></i> Arkadaşlar
+        @if (Model > 0)
+        {
+            <span class="badge rounded-pill bg-danger">@(Model > 99 ? "99+" : Model.ToString())</span>
+        }
+    </a>
+</li>

@@ -22,6 +22,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Eventreadstatus> Eventreadstatuses { get; set; }
 
+    public virtual DbSet<Friendship> Friendships { get; set; }
+
     public virtual DbSet<Interest> Interests { get; set; }
 
     public virtual DbSet<Message> Messages { get; set; }
@@ -131,6 +133,37 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.Userid)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("eventreadstatus_userid_fkey");
+        });
+
+        modelBuilder.Entity<Friendship>(entity =>
+        {
+            entity.HasKey(e => e.Friendshipid).HasName("friendships_pkey");
+
+            entity.ToTable("friendships");
+
+            entity.HasIndex(e => new { e.Addresseeid, e.Status }, "idx_friendships_addressee_status");
+
+            entity.Property(e => e.Friendshipid).HasColumnName("friendshipid");
+            entity.Property(e => e.Addresseeid).HasColumnName("addresseeid");
+            entity.Property(e => e.Createdat)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Requesterid).HasColumnName("requesterid");
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasDefaultValue("pending")
+                .HasColumnName("status");
+
+            entity.HasOne(d => d.Addressee).WithMany()
+                .HasForeignKey(d => d.Addresseeid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("friendships_addresseeid_fkey");
+
+            entity.HasOne(d => d.Requester).WithMany()
+                .HasForeignKey(d => d.Requesterid)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("friendships_requesterid_fkey");
         });
 
         modelBuilder.Entity<Interest>(entity =>

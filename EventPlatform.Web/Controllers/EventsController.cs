@@ -65,8 +65,8 @@ public class EventsController : Controller
         {
             var pattern = "%" + EscapeLike(q) + "%";
             query = query.Where(e =>
-                EF.Functions.ILike(e.Eventname, pattern) ||
-                EF.Functions.ILike(e.Location, pattern));
+                EF.Functions.ILike(e.Eventname, pattern, "\\") ||
+                EF.Functions.ILike(e.Location, pattern, "\\"));
         }
 
         if (!string.IsNullOrEmpty(category))

@@ -1,0 +1,14 @@
+@model FriendRow
+
+<div class="list-group-item d-flex flex-wrap align-items-center gap-3 py-3">
+    <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold flex-shrink-0"
+          style="width: 40px; height: 40px;">@Model.Username.Substring(0, 1).ToUpperInvariant()</span>
+    <div class="flex-grow-1">
+        <a asp-controller="Users" asp-action="Profile" asp-route-username="@Model.Username"
+           class="fw-semibold text-decoration-none">@@@Model.Username</a>
+        <div class="small text-muted">@Model.DisplayName</div>
+    </div>
+    <div>
+        <partial name="_FriendAction" model="new FriendActionModel(Model.Username, Model.Relation)" />
+    </div>
+</div>

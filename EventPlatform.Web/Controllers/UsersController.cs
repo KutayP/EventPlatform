@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
+using EventPlatform.Web.Helpers;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Web.Controllers;
 
-// Herkese açık profil sayfaları: /u/{kullanici}
+// Profil sayfaları: /u/{kullanici}
 public class UsersController : Controller
 {
     private const int EventsShown = 6;
@@ -38,14 +39,6 @@ public class UsersController : Controller
         ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1
     };
 
-    // "Deniz Akay" -> "Deniz A."
-    private static string DisplayName(string firstName, string lastName)
-    {
-        var first = firstName.Trim();
-        var last = lastName.Trim();
-        return last.Length == 0 ? first : $"{first} {char.ToUpperInvariant(last[0])}.";
-    }
-
     [HttpGet("u/{username}")]
     public async Task<IActionResult> Profile(string username)
     {
@@ -58,20 +51,48 @@ public class UsersController : Controller
         if (user == null)
             return NotFound();
 
-        var isOwner = CurrentUserId == user.Userid;
+        var viewerId = CurrentUserId;
+        var isOwner = viewerId == user.Userid;
         var isAdmin = User.IsInRole("Admin");
         var isPublic = user.Profilevisibility == ProfileVisibilities.Public;
 
-        // İçeriği kim görür? Herkese açıksa herkes; "yalnızca arkadaşlar" ise (arkadaşlık özelliği gelene kadar)
-        // yalnızca sahibi ve yönetici. Özel bilgiler (e-posta, doğum tarihi, cinsiyet) hiçbir durumda gösterilmez.
+        // Ziyaretçinin bu kullanıcıyla arkadaşlık durumu.
+        FriendRelation relation;
+        if (viewerId == 0)
+        {
+            relation = FriendRelation.Anonymous;
+        }
+        else if (isOwner)
+        {
+            relation = FriendRelation.Self;
+        }
+        else
+        {
+            var f = await _context.Friendships
+                .AsNoTracking()
+                .Between(viewerId, user.Userid)
+                .Select(x => new { x.Requesterid, x.Status })
+                .FirstOrDefaultAsync();
+
+            relation = f == null ? FriendRelation.None
+                : f.Status == FriendshipStatus.Accepted ? FriendRelation.Friends
+                : f.Requesterid == viewerId ? FriendRelation.RequestSent
+                : FriendRelation.RequestReceived;
+        }
+
+        var isFriend = relation == FriendRelation.Friends;
+
+        // İçeriği kim görür? Herkese açıksa herkes; "yalnızca arkadaşlar" ise arkadaşlar, sahibi ve yönetici.
+        // Özel bilgiler (e-posta, doğum tarihi, cinsiyet) hiçbir durumda gösterilmez.
         var vm = new PublicProfileViewModel
         {
             Username = user.Username,
-            DisplayName = DisplayName(user.Firstname, user.Lastname),
+            DisplayName = DisplayNameHelper.Short(user.Firstname, user.Lastname),
             IsOwner = isOwner,
             IsFriendsOnly = !isPublic,
-            IsVisible = isPublic || isOwner || isAdmin,
-            IsAdminViewing = !isOwner && isAdmin && !isPublic
+            IsVisible = isPublic || isOwner || isAdmin || isFriend,
+            IsAdminViewing = !isOwner && isAdmin && !isPublic && !isFriend,
+            Relation = relation
         };
 
         if (!vm.IsVisible)

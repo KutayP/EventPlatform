@@ -1,4 +1,4 @@
-﻿@model HomeViewModel
+@model HomeViewModel
 
 @{
     ViewData["Title"] = "Ana sayfa";
@@ -69,6 +69,52 @@
         </div>
     }
 </section>
+
+@if (Model.IsAuthenticated && Model.FriendsCreated.Count == 0 && Model.FriendsJoined.Count == 0)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0">Arkadaşlarının etkinlikleri</h2>
+            <a asp-controller="Friends" asp-action="Index" class="text-decoration-none">Arkadaşlar <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="card">
+            <div class="card-body text-center text-muted py-4">
+                Arkadaşlarının yaklaşan bir etkinliği yok.
+                <a asp-controller="Friends" asp-action="Index">Arkadaş bul</a>
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.IsAuthenticated && Model.FriendsCreated.Count > 0)
+{
+    <section class="mb-5">
+        <h2 class="h4 mb-3">Arkadaşlarının oluşturduğu etkinlikler</h2>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var e in Model.FriendsCreated)
+            {
+                <div class="col">
+                    <partial name="_EventCard" model="e" />
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.IsAuthenticated && Model.FriendsJoined.Count > 0)
+{
+    <section class="mb-5">
+        <h2 class="h4 mb-3">Arkadaşlarının katıldığı etkinlikler</h2>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var e in Model.FriendsJoined)
+            {
+                <div class="col">
+                    <partial name="_EventCard" model="e" />
+                </div>
+            }
+        </div>
+    </section>
+}
 
 <section class="mb-4">
     <h2 class="h4 mb-3">Nasıl çalışır?</h2>
