@@ -1,7 +1,7 @@
 @model ProfileViewModel
 
 @{
-    ViewData["Title"] = "Profilim";
+    ViewData["Title"] = "Profili düzenle";
     var genders = new[]
 {
     new SelectListItem("Erkek", "Male"),
@@ -32,7 +32,7 @@
                 <div class="text-muted">@@@Model.Username</div>
                 <div class="text-muted small">@Model.Email</div>
                 <a asp-controller="Users" asp-action="Profile" asp-route-username="@Model.Username"
-                   class="btn btn-outline-primary btn-sm mt-3">Profil sayfamı gör</a>
+                   class="btn btn-outline-primary btn-sm mt-3"><i class="bi bi-arrow-left"></i> Profilime dön</a>
 
                 <hr />
 

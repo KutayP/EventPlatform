@@ -29,8 +29,26 @@ public class ProfileController : Controller
 
     // ---------- PROFİL ----------
 
+    // "Profilim": herkese açık profil sayfama yönlendirir (/u/kullanici). Düzenleme ayrı sayfada (Edit).
     [HttpGet]
     public async Task<IActionResult> Index()
+    {
+        var userId = CurrentUserId;
+        var username = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Userid == userId)
+            .Select(u => u.Username)
+            .FirstOrDefaultAsync();
+
+        if (username == null)
+            return await SignOutAsync();
+
+        return RedirectToAction("Profile", "Users", new { username });
+    }
+
+    // Profili düzenleme sayfası: bilgiler, ilgi alanları, görünürlük, şifre.
+    [HttpGet]
+    public async Task<IActionResult> Edit()
     {
         var vm = await BuildViewModelAsync(CurrentUserId);
         if (vm == null)
@@ -58,7 +76,7 @@ public class ProfileController : Controller
         if (!ModelState.IsValid)
         {
             var invalidVm = await BuildViewModelAsync(userId, info: input);
-            return invalidVm == null ? await SignOutAsync() : View("Index", invalidVm);
+            return invalidVm == null ? await SignOutAsync() : View("Edit", invalidVm);
         }
 
         var user = await _context.Users.FindAsync(userId);
@@ -73,7 +91,7 @@ public class ProfileController : Controller
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Bilgilerin güncellendi.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Edit));
     }
 
     // ---------- İLGİ ALANLARINI GÜNCELLE ----------
@@ -95,7 +113,7 @@ public class ProfileController : Controller
         {
             ModelState.AddModelError(string.Empty, "Geçersiz ilgi alanı seçildi.");
             var invalidVm = await BuildViewModelAsync(userId, selectedIds: requested.Where(validIds.Contains).ToList());
-            return invalidVm == null ? await SignOutAsync() : View("Index", invalidVm);
+            return invalidVm == null ? await SignOutAsync() : View("Edit", invalidVm);
         }
 
         var current = await _context.Userinterests
@@ -119,7 +137,7 @@ public class ProfileController : Controller
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "İlgi alanların güncellendi.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Edit));
     }
 
     // ---------- PROFİL GÖRÜNÜRLÜĞÜ ----------
@@ -132,7 +150,7 @@ public class ProfileController : Controller
         if (!ProfileVisibilities.IsValid(visibility))
         {
             TempData["ErrorMessage"] = "Geçersiz görünürlük seçeneği.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Edit));
         }
 
         // Kimlik cookie'den gelir: yalnızca kendi ayarın değişir.
@@ -147,7 +165,7 @@ public class ProfileController : Controller
         TempData["SuccessMessage"] = visibility == ProfileVisibilities.Public
             ? "Profilin artık herkese açık."
             : "Profilin artık yalnızca arkadaşlarına açık.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Edit));
     }
 
     // ---------- ŞİFRE DEĞİŞTİR ----------
@@ -183,14 +201,14 @@ public class ProfileController : Controller
         if (!ModelState.IsValid)
         {
             var invalidVm = await BuildViewModelAsync(userId);
-            return invalidVm == null ? await SignOutAsync() : View("Index", invalidVm);
+            return invalidVm == null ? await SignOutAsync() : View("Edit", invalidVm);
         }
 
         user.Password = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Şifren değiştirildi.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Edit));
     }
 
     // ---------- YARDIMCI ----------
