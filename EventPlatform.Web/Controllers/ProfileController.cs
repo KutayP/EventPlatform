@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
@@ -122,6 +122,34 @@ public class ProfileController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // ---------- PROFİL GÖRÜNÜRLÜĞÜ ----------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateVisibility(string? visibility)
+    {
+        // Yalnızca bilinen değerler kabul edilir (formu elle değiştirip başka değer göndermek işe yaramaz).
+        if (!ProfileVisibilities.IsValid(visibility))
+        {
+            TempData["ErrorMessage"] = "Geçersiz görünürlük seçeneği.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Kimlik cookie'den gelir: yalnızca kendi ayarın değişir.
+        var userId = CurrentUserId;
+        var updated = await _context.Users
+            .Where(u => u.Userid == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Profilevisibility, visibility));
+
+        if (updated == 0)
+            return await SignOutAsync();
+
+        TempData["SuccessMessage"] = visibility == ProfileVisibilities.Public
+            ? "Profilin artık herkese açık."
+            : "Profilin artık yalnızca arkadaşlarına açık.";
+        return RedirectToAction(nameof(Index));
+    }
+
     // ---------- ŞİFRE DEĞİŞTİR ----------
 
     [HttpPost]
@@ -181,7 +209,7 @@ public class ProfileController : Controller
         var u = await _context.Users
             .AsNoTracking()
             .Where(x => x.Userid == userId)
-            .Select(x => new { x.Username, x.Email, x.Firstname, x.Lastname, x.Birthdate, x.Gender })
+            .Select(x => new { x.Username, x.Email, x.Firstname, x.Lastname, x.Birthdate, x.Gender, x.Profilevisibility })
             .FirstOrDefaultAsync();
 
         if (u == null)
@@ -208,6 +236,7 @@ public class ProfileController : Controller
         {
             Username = u.Username,
             Email = u.Email,
+            ProfileVisibility = u.Profilevisibility,
             CreatedCount = await _context.Events.CountAsync(e => e.Createdbyuserid == userId),
             JoinedCount = await _context.Events.CountAsync(e => e.Users.Any(p => p.Userid == userId)),
             InfoForm = info ?? new ProfileInfoInput

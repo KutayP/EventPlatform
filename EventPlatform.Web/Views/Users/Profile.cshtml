@@ -1,0 +1,120 @@
+@model PublicProfileViewModel
+
+@{
+    ViewData["Title"] = Model.Username;
+    var initial = Model.Username.Length > 0 ? Model.Username.Substring(0, 1).ToUpperInvariant() : "?";
+}
+
+@if (Model.IsOwner)
+{
+    <div class="alert @(Model.IsFriendsOnly ? "alert-warning" : "alert-info") d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>
+            @if (Model.IsFriendsOnly)
+            {
+                <i class="bi bi-lock"></i>
+                <span>Profilin şu an yalnızca arkadaşlarına açık. Şimdilik yalnızca sen ve yöneticiler görebilir.</span>
+            }
+            else
+            {
+                <i class="bi bi-globe2"></i>
+                <span>Profilin herkese açık. Başkaları seni böyle görüyor.</span>
+            }
+        </span>
+        <a asp-controller="Profile" asp-action="Index" asp-fragment="gorunurluk" class="btn btn-sm btn-outline-secondary">Görünürlüğü değiştir</a>
+    </div>
+}
+else if (Model.IsAdminViewing)
+{
+    <div class="alert alert-secondary">
+        <i class="bi bi-shield-check"></i> Bu profil yalnızca arkadaşlara açık. Yönetici olduğun için görüyorsun.
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body text-center p-4">
+        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 84px; height: 84px; font-size: 2rem;">@initial</div>
+        <h1 class="h3 mb-0">@Model.DisplayName</h1>
+        <div class="text-muted">@@@Model.Username</div>
+
+        @if (Model.IsVisible)
+        {
+            <hr />
+            <div class="row justify-content-center">
+                <div class="col-4 col-md-3">
+                    <div class="fs-4 fw-semibold">@Model.CreatedCount</div>
+                    <div class="small text-muted">Oluşturduğu</div>
+                </div>
+                <div class="col-4 col-md-3">
+                    <div class="fs-4 fw-semibold">@Model.JoinedCount</div>
+                    <div class="small text-muted">Katıldığı</div>
+                </div>
+            </div>
+
+            @if (Model.Interests.Count > 0)
+            {
+                <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                    @foreach (var interest in Model.Interests)
+                    {
+                        <span class="badge rounded-pill bg-light text-dark border">@CategoryStyle.Label(interest)</span>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (!Model.IsVisible)
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <div class="step-icon mb-3"><i class="bi bi-lock"></i></div>
+            <h5>Bu profil gizli</h5>
+            <p class="text-muted mb-0">@Model.DisplayName profilini yalnızca arkadaşlarına açık tutuyor.</p>
+        </div>
+    </div>
+}
+else
+{
+    <section class="mb-4">
+        <h2 class="h5 mb-3">Oluşturduğu yaklaşan etkinlikler</h2>
+        @if (Model.Created.Count == 0)
+        {
+            <p class="text-muted">Yaklaşan etkinlik yok.</p>
+        }
+        else
+        {
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                @foreach (var e in Model.Created)
+                {
+                    <div class="col">
+                        <partial name="_EventCard" model="e" />
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h5 mb-3">Katıldığı yaklaşan etkinlikler</h2>
+        @if (Model.Joined.Count == 0)
+        {
+            <p class="text-muted">Yaklaşan etkinlik yok.</p>
+        }
+        else
+        {
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                @foreach (var e in Model.Joined)
+                {
+                    <div class="col">
+                        <partial name="_EventCard" model="e" />
+                    </div>
+                }
+            </div>
+        }
+    </section>
+}
+
+@section Scripts {
+    <script src="~/js/local-time.js"></script>
+}

@@ -1,4 +1,4 @@
-﻿@model ProfileViewModel
+@model ProfileViewModel
 
 @{
     ViewData["Title"] = "Profilim";
@@ -31,6 +31,8 @@
                 <h4 class="mb-0">@Model.InfoForm.Firstname @Model.InfoForm.Lastname</h4>
                 <div class="text-muted">@@@Model.Username</div>
                 <div class="text-muted small">@Model.Email</div>
+                <a asp-controller="Users" asp-action="Profile" asp-route-username="@Model.Username"
+                   class="btn btn-outline-primary btn-sm mt-3">Profil sayfamı gör</a>
 
                 <hr />
 
@@ -95,6 +97,32 @@
                     <div class="mb-3">
                         <partial name="_InterestPicker" model="Model.Interests" />
                     </div>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4" id="gorunurluk">
+            <div class="card-header">Profil görünürlüğü</div>
+            <div class="card-body">
+                <form asp-action="UpdateVisibility" method="post">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="visibility" id="vis-public"
+                               value="@ProfileVisibilities.Public" checked="@(Model.ProfileVisibility == ProfileVisibilities.Public)" />
+                        <label class="form-check-label" for="vis-public">
+                            <strong>Herkese açık</strong>
+                            <span class="d-block text-muted small">Profil sayfamı herkes görebilir.</span>
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="visibility" id="vis-friends"
+                               value="@ProfileVisibilities.Friends" checked="@(Model.ProfileVisibility == ProfileVisibilities.Friends)" />
+                        <label class="form-check-label" for="vis-friends">
+                            <strong>Yalnızca arkadaşlarım</strong>
+                            <span class="d-block text-muted small">Arkadaşlık özelliği gelene kadar yalnızca ben ve yöneticiler görebilir.</span>
+                        </label>
+                    </div>
+                    <p class="text-muted small">E-posta, doğum tarihi ve cinsiyet bu ayardan bağımsız olarak hiçbir zaman başkalarına gösterilmez.</p>
                     <button type="submit" class="btn btn-primary">Kaydet</button>
                 </form>
             </div>

@@ -58,7 +58,7 @@
                 <div class="d-flex align-items-center gap-2 text-muted mb-4">
                     <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold"
                           style="width: 28px; height: 28px; font-size: 0.8rem;">@creatorInitial</span>
-                    <span>Oluşturan: <strong class="text-body">@Model.CreatorUsername</strong></span>
+                    <span>Oluşturan: <a asp-controller="Users" asp-action="Profile" asp-route-username="@Model.CreatorUsername" class="fw-bold text-body text-decoration-none">@Model.CreatorUsername</a></span>
                 </div>
 
                 <h2 class="h6 text-uppercase text-muted mb-2">Açıklama</h2>

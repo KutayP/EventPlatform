@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
@@ -11,6 +11,9 @@ public class ProfileViewModel
     public string Email { get; set; } = "";
     public int CreatedCount { get; set; }
     public int JoinedCount { get; set; }
+
+    // "public" ya da "friends" (bkz. ProfileVisibilities)
+    public string ProfileVisibility { get; set; } = ProfileVisibilities.Public;
 
     public ProfileInfoInput InfoForm { get; set; } = new();
     public ChangePasswordInput PasswordForm { get; set; } = new();

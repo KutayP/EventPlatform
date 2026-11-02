@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace EventPlatform.Web.Models.Entities;
@@ -32,6 +32,8 @@ public partial class User
     public double? Latitude { get; set; }
 
     public double? Longitude { get; set; }
+
+    public string Profilevisibility { get; set; } = "public";
 
     public virtual ICollection<Eventparticipationrequest> EventparticipationrequestForuserNavigations { get; set; } = new List<Eventparticipationrequest>();
 

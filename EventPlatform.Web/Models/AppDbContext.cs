@@ -243,6 +243,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Profilepicture)
                 .HasMaxLength(255)
                 .HasColumnName("profilepicture");
+            entity.Property(e => e.Profilevisibility)
+                .HasMaxLength(10)
+                .HasDefaultValue("public")
+                .HasColumnName("profilevisibility");
             entity.Property(e => e.Role)
                 .HasMaxLength(20)
                 .HasColumnName("role");
