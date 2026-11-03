@@ -2,11 +2,16 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Önce yalnızca proje dosyası: paket geri yüklemesi katman önbelleğinden gelsin.
+# ReadyToRun için hedef platform (linux-x64) geri yüklemede de belirtilmeli.
 COPY EventPlatform.Web/EventPlatform.Web.csproj EventPlatform.Web/
-RUN dotnet restore EventPlatform.Web/EventPlatform.Web.csproj
+RUN dotnet restore EventPlatform.Web/EventPlatform.Web.csproj -r linux-x64
 
 COPY EventPlatform.Web/ EventPlatform.Web/
-RUN dotnet publish EventPlatform.Web/EventPlatform.Web.csproj -c Release -o /app/publish --no-restore
+
+# ReadyToRun: kod yayın sırasında önceden derlenir. Zayıf işlemcili sunucuda her sayfanın
+# ilk açılışındaki derleme (JIT) beklemesini büyük ölçüde ortadan kaldırır.
+RUN dotnet publish EventPlatform.Web/EventPlatform.Web.csproj -c Release -o /app/publish \
+    -r linux-x64 --self-contained false -p:PublishReadyToRun=true --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
