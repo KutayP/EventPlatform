@@ -5,6 +5,7 @@
 A full-stack social event platform: users discover and create events, join them, chat with other participants in real time, add friends, and get notified about activity and new events near them that match their interests.
 
 **Live demo:** https://eventplatform-wvls.onrender.com
+
 **Demo login:** `demo` / `Demo1234!` (password, personal info and event editing/deleting are disabled for this account; the sample data is reset from time to time)
 
 > The demo runs on free hosting tiers. If it has been idle, the first request can take up to a minute while the server and database wake up.
