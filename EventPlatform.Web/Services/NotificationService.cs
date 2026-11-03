@@ -11,6 +11,10 @@ namespace EventPlatform.Web.Services;
 // asla bozmamalı: oluşturma/silme hataları yutulur ve günlüğe yazılır.
 public class NotificationService
 {
+    // Bir etkinlik için en fazla bu kadar kişiye, bir kişiye de günde en fazla bu kadar öneri gider.
+    private const int MaxRecommendationRecipients = 200;
+    private const int MaxRecommendationsPerDay = 3;
+
     private readonly AppDbContext _context;
     private readonly IHubContext<NotificationHub> _hub;
     private readonly ILogger<NotificationService> _logger;
@@ -67,6 +71,56 @@ public class NotificationService
             _logger.LogWarning(ex, "Bildirim oluşturulamadı (tür: {Type}).", type);
             if (added != null)
                 _context.Entry(added).State = EntityState.Detached;
+        }
+    }
+
+    // Yeni yayınlanan etkinliği; kategorisi ilgi alanlarından biriyle eşleşen, "öneri bildirimi"ni açmış ve
+    // etkinlik kendi seçtiği mesafe içinde kalan kullanıcılara önerir. Tek SQL ile, en yakından başlayarak eklenir.
+    // (notifications'ta (userid, eventid) için benzersiz indeks olduğundan aynı kişiye ikinci kez gitmez.)
+    public async Task NotifyRecommendedAsync(int eventId)
+    {
+        try
+        {
+            await _context.Database.ExecuteSqlAsync($"""
+                INSERT INTO notifications (userid, type, actorid, eventid, createdat)
+                SELECT u.userid, 'event_recommended', ev.createdbyuserid, ev.eventid, (now() AT TIME ZONE 'utc')
+                FROM events ev
+                JOIN interests i ON i.interestname = ev.category
+                JOIN userinterests ui ON ui.interestid = i.interestid
+                JOIN users u ON u.userid = ui.userid
+                JOIN usersettings s ON s.userid = u.userid AND s.notify_recommended
+                CROSS JOIN LATERAL (
+                    SELECT 2 * 6371 * asin(least(1, sqrt(
+                        power(sin(radians(ev.latitude - u.latitude) / 2), 2) +
+                        cos(radians(u.latitude)) * cos(radians(ev.latitude)) *
+                        power(sin(radians(ev.longitude - u.longitude) / 2), 2)))) AS km
+                ) d
+                WHERE ev.eventid = {eventId}
+                  AND ev.isapproved
+                  AND ev.date > (now() AT TIME ZONE 'utc')
+                  AND u.userid <> ev.createdbyuserid
+                  AND u.latitude IS NOT NULL AND u.longitude IS NOT NULL
+                  AND d.km <= s.radius_km
+                  AND (SELECT count(*) FROM notifications n
+                       WHERE n.userid = u.userid AND n.type = 'event_recommended'
+                         AND n.createdat > (now() AT TIME ZONE 'utc') - interval '1 day') < {MaxRecommendationsPerDay}
+                ORDER BY d.km
+                LIMIT {MaxRecommendationRecipients}
+                ON CONFLICT DO NOTHING
+                """);
+
+            var recipients = await _context.Notifications
+                .AsNoTracking()
+                .Where(n => n.Eventid == eventId && n.Type == NotificationTypes.EventRecommended)
+                .Select(n => n.Userid)
+                .ToListAsync();
+
+            if (recipients.Count > 0)
+                await _hub.Clients.Users(recipients.Select(i => i.ToString()).ToList()).SendAsync("NotificationsChanged");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Etkinlik önerisi bildirimleri oluşturulamadı (etkinlik: {EventId}).", eventId);
         }
     }
 

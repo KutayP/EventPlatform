@@ -1,0 +1,232 @@
+@using EventPlatform.Web.Helpers
+@using EventPlatform.Web.Models.ViewModels
+@model LocationSettingsViewModel
+
+@{
+    ViewData["Title"] = "Konum";
+    Layout = "_SettingsLayout";
+    ViewData["SettingsSection"] = "location";
+
+    var radii = new[] { 10, 25, 50, 100, 250 };
+
+    // Konum seçilmemişken gösterilen örnek etkinlikler (gerçek değildir).
+    var samples = new[]
+    {
+        new { Name = "Sahilde yürüyüş ve kahve", When = "Cumartesi 10:00", Km = "1,2 km uzakta" },
+        new { Name = "Masa oyunları gecesi",     When = "Cuma 19:30",      Km = "2,8 km uzakta" },
+        new { Name = "Açık hava konseri",        When = "Pazar 18:00",     Km = "4,5 km uzakta" }
+    };
+}
+
+@{
+    // Örnek önizlemede harita soluk ve gri; gerçek sonuçlarda renkli.
+    var mapStyle = Model.HasLocation ? "" : "filter: grayscale(1); opacity: .55;";
+}
+
+@if (Model.HasLocation)
+{
+    @* ---------- GERÇEK SONUÇLAR ---------- *@
+    <div class="card shadow-sm mb-4 overflow-hidden border-primary">
+        <div class="row g-0">
+            <div class="col-md-5 position-relative">
+                <svg viewBox="0 0 360 260" class="w-100 h-100 d-block" style="min-height: 220px; background: var(--ep-surface-2); @mapStyle" role="img" aria-label="Haritada seçili bir konum ve çevresi">
+                    <rect x="212" y="0" width="148" height="92" rx="14" style="fill: var(--bs-info-bg-subtle, #cfe2ff);" />
+                    <g style="stroke: var(--ep-border); stroke-width: 10; stroke-linecap: round; fill: none;">
+                        <path d="M-10 70 C 90 80, 150 40, 380 60" />
+                        <path d="M40 -10 C 60 100, 40 180, 70 280" />
+                        <path d="M-10 190 C 120 170, 220 220, 380 180" />
+                        <path d="M250 -10 C 260 100, 300 160, 290 280" />
+                    </g>
+                    <g style="fill: var(--ep-border); opacity: .55;">
+                        <rect x="90" y="96" width="40" height="30" rx="5" />
+                        <rect x="140" y="96" width="30" height="30" rx="5" />
+                        <rect x="90" y="140" width="50" height="26" rx="5" />
+                        <rect x="170" y="140" width="40" height="26" rx="5" />
+                        <rect x="300" y="110" width="40" height="40" rx="5" />
+                        <rect x="100" y="205" width="60" height="30" rx="5" />
+                    </g>
+                    <circle cx="180" cy="128" r="84" style="fill: rgba(var(--bs-primary-rgb), .10); stroke: var(--bs-primary); stroke-width: 2; stroke-dasharray: 6 6;" />
+                    <circle cx="130" cy="95" r="7" style="fill: var(--bs-primary);" />
+                    <circle cx="228" cy="150" r="7" style="fill: var(--bs-primary);" />
+                    <circle cx="205" cy="82" r="7" style="fill: var(--bs-primary);" />
+                    <g transform="translate(180 128)">
+                        <path d="M0 0 C -14 -22 -22 -32 -22 -44 a22 22 0 1 1 44 0 C 22 -32 14 -22 0 0 Z" style="fill: var(--bs-danger, #dc3545);" />
+                        <circle cx="0" cy="-44" r="8" fill="#fff" />
+                    </g>
+                </svg>
+                <span class="position-absolute bottom-0 start-0 m-3 badge rounded-pill text-bg-primary shadow-sm">
+                    <i class="bi bi-geo-alt-fill"></i> @Model.Label · @Model.RadiusKm km
+                </span>
+            </div>
+            <div class="col-md-7">
+                <div class="card-header border-top-0 d-flex justify-content-between align-items-center gap-2">
+                    <span><i class="bi bi-geo-alt-fill text-primary me-1"></i>Sana yakın etkinlikler</span>
+                    <span class="badge rounded-pill text-bg-success"><i class="bi bi-check2"></i> Konumun açık</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    @if (Model.Nearby.Count == 0)
+                    {
+                        <div class="list-group-item text-muted small py-4 text-center">
+                            <i class="bi bi-calendar-x fs-4 d-block mb-2"></i>
+                            @Model.RadiusKm km içinde şu an yaklaşan etkinlik yok. Öneri bildirimi açıksa yeni etkinlik yayınlanınca haber alırsın.
+                        </div>
+                    }
+                    @foreach (var e in Model.Nearby)
+                    {
+                        <a href="@Url.EventUrl(e.Eventname, e.Publicid)" class="list-group-item list-group-item-action py-3">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                <strong class="text-truncate">@e.Eventname</strong>
+                                <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis flex-shrink-0">
+                                    <i class="bi bi-signpost-2"></i> @e.Note
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 small">
+                                <span class="badge category-badge @CategoryStyle.CssClass(e.Category)">@CategoryStyle.Label(e.Category)</span>
+                                <span class="text-muted"><i class="bi bi-calendar-event"></i>
+                                    <time data-utc="@(e.Date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))">@e.Date.ToString("dd.MM.yyyy HH:mm") UTC</time>
+                                </span>
+                            </div>
+                            <div class="text-muted small text-truncate mt-1"><i class="bi bi-geo"></i> @e.Location</div>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    @* ---------- ÖRNEK ÖNİZLEME (konum seçilmemiş) ---------- *@
+    <div class="card shadow-sm mb-4 overflow-hidden" style="border-style: dashed;">
+        <div class="row g-0">
+            <div class="col-md-5 position-relative">
+                <svg viewBox="0 0 360 260" class="w-100 h-100 d-block" style="min-height: 220px; background: var(--ep-surface-2); @mapStyle" role="img" aria-label="Haritada seçili bir konum ve çevresi">
+                    <rect x="212" y="0" width="148" height="92" rx="14" style="fill: var(--bs-info-bg-subtle, #cfe2ff);" />
+                    <g style="stroke: var(--ep-border); stroke-width: 10; stroke-linecap: round; fill: none;">
+                        <path d="M-10 70 C 90 80, 150 40, 380 60" />
+                        <path d="M40 -10 C 60 100, 40 180, 70 280" />
+                        <path d="M-10 190 C 120 170, 220 220, 380 180" />
+                        <path d="M250 -10 C 260 100, 300 160, 290 280" />
+                    </g>
+                    <g style="fill: var(--ep-border); opacity: .55;">
+                        <rect x="90" y="96" width="40" height="30" rx="5" />
+                        <rect x="140" y="96" width="30" height="30" rx="5" />
+                        <rect x="90" y="140" width="50" height="26" rx="5" />
+                        <rect x="170" y="140" width="40" height="26" rx="5" />
+                        <rect x="300" y="110" width="40" height="40" rx="5" />
+                        <rect x="100" y="205" width="60" height="30" rx="5" />
+                    </g>
+                    <circle cx="180" cy="128" r="84" style="fill: rgba(var(--bs-primary-rgb), .10); stroke: var(--bs-primary); stroke-width: 2; stroke-dasharray: 6 6;" />
+                    <circle cx="130" cy="95" r="7" style="fill: var(--bs-primary);" />
+                    <circle cx="228" cy="150" r="7" style="fill: var(--bs-primary);" />
+                    <circle cx="205" cy="82" r="7" style="fill: var(--bs-primary);" />
+                    <g transform="translate(180 128)">
+                        <path d="M0 0 C -14 -22 -22 -32 -22 -44 a22 22 0 1 1 44 0 C 22 -32 14 -22 0 0 Z" style="fill: var(--bs-danger, #dc3545);" />
+                        <circle cx="0" cy="-44" r="8" fill="#fff" />
+                    </g>
+                </svg>
+                <span class="position-absolute top-50 start-50 translate-middle badge rounded-pill text-bg-secondary fs-6 shadow-sm">
+                    <i class="bi bi-eye"></i> Örnek görünüm
+                </span>
+            </div>
+            <div class="col-md-7">
+                <div class="card-header border-top-0 d-flex justify-content-between align-items-center gap-2 text-muted">
+                    <span><i class="bi bi-geo-alt me-1"></i>Sana yakın etkinlikler</span>
+                    <span class="badge rounded-pill text-bg-secondary">Örnek</span>
+                </div>
+                <div class="list-group list-group-flush" style="opacity: .55;" aria-hidden="true">
+                    @foreach (var s in samples)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between gap-2">
+                                <span class="fst-italic text-truncate">@s.Name</span>
+                                <span class="text-muted small flex-shrink-0">@s.Km</span>
+                            </div>
+                            <div class="text-muted small">@s.When</div>
+                        </div>
+                    }
+                </div>
+                <div class="p-3 bg-primary-subtle d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span class="small">Konumunu seç; burada çevrendeki <strong>gerçek</strong> etkinlikler listelensin.</span>
+                    <a href="#konumum" class="btn btn-primary btn-sm"><i class="bi bi-geo-alt"></i> Konumunu seç</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card shadow-sm" id="konumum">
+    <div class="card-header">Konumum</div>
+    <div class="card-body">
+        <form asp-action="Location" method="post" id="locationForm">
+            <div class="mb-3" id="searchGroup">
+                <label class="form-label">Konum ara</label>
+                <div id="placeSearch"></div>
+                <div class="form-text">Semt, ilçe ya da şehir yazıp listeden seç; ya da haritaya tıkla.</div>
+            </div>
+
+            <div class="mb-3">
+                <div id="map" style="height: 320px; border-radius: 8px;"></div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-7 mb-3">
+                    <label class="form-label" for="locLabel">Seçilen konum</label>
+                    <input id="locLabel" name="label" class="form-control" value="@Model.Label" readonly />
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label" for="radiusKm">Çevre mesafesi</label>
+                    <select id="radiusKm" name="radiusKm" class="form-select">
+                        @foreach (var r in radii)
+                        {
+                            <option value="@r" selected="@(Model.RadiusKm == r)">@r km</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" id="locLat" name="latitude" value="@(Model.Latitude?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+            <input type="hidden" id="locLng" name="longitude" value="@(Model.Longitude?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+
+            <p class="text-muted small">
+                <i class="bi bi-shield-lock"></i>
+                Konumun yaklaşık 1 km hassasiyetinde saklanır, profilinde ya da başka bir yerde kimseye gösterilmez;
+                yalnızca sana yakın etkinlikleri bulmak için kullanılır.
+            </p>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Kaydet</button>
+                @if (Model.HasLocation)
+                {
+                    <button type="submit" class="btn btn-outline-danger" form="deleteLocationForm"
+                            onclick="return confirm('Konumun silinsin mi?');">Konumumu sil</button>
+                }
+            </div>
+        </form>
+
+        <form asp-action="DeleteLocation" method="post" id="deleteLocationForm"></form>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        #placeSearch gmp-place-autocomplete {
+            display: block;
+            width: 100%;
+            color-scheme: light;
+        }
+    </style>
+
+    <script>
+        // Etkinlik zamanlarını tarayıcının yerel saatine çevir.
+        document.querySelectorAll('time[data-utc]').forEach(function (el) {
+            var d = new Date(el.dataset.utc);
+            if (!isNaN(d.getTime())) {
+                el.textContent = d.toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            }
+        });
+    </script>
+
+    <script src="~/js/location-settings.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@Model.MapsApiKey&callback=initLocationMap&loading=async&language=tr&region=TR" async defer></script>
+}

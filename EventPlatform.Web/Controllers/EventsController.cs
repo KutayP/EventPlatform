@@ -310,6 +310,9 @@ public class EventsController : Controller
             {
                 await _context.SaveChangesAsync();
 
+                // İlgi alanı ve konumu uyan kullanıcılara öneri bildirimi (hata verirse oluşturma etkilenmez).
+                await _notifications.NotifyRecommendedAsync(ev.Eventid);
+
                 TempData["SuccessMessage"] = "Etkinliğiniz oluşturuldu ve yayınlandı.";
                 return RedirectToAction(nameof(Details),
                     new { slugId = SlugHelper.Compose(ev.Eventname, ev.Publicid) });

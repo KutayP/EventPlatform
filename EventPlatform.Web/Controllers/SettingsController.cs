@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Claims;
+using EventPlatform.Web.Helpers;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using EventPlatform.Web.Models.ViewModels;
@@ -16,10 +18,12 @@ namespace EventPlatform.Web.Controllers;
 public class SettingsController : Controller
 {
     private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public SettingsController(AppDbContext context)
+    public SettingsController(AppDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     // Kimlik her zaman cookie'den gelir; başka birinin ayarını değiştirmek mümkün değil.
@@ -218,19 +222,53 @@ public class SettingsController : Controller
         return RedirectToAction(nameof(Privacy));
     }
 
+    // Ayar satırı yoksa oluşturur, varsa günceller. İki istek aynı anda satır eklemeye çalışırsa yeniden dener.
+    private async Task SaveSettingsAsync(int userId, Action<Usersetting> apply)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var settings = await _context.Usersettings.FirstOrDefaultAsync(x => x.Userid == userId);
+            if (settings == null)
+            {
+                settings = new Usersetting { Userid = userId };
+                _context.Usersettings.Add(settings);
+            }
+
+            apply(settings);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return;
+            }
+            catch (DbUpdateException ex) when (attempt < 2 && ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                _context.ChangeTracker.Clear();
+            }
+        }
+    }
+
     // ---------- BİLDİRİMLER ----------
 
     [HttpGet("bildirimler")]
     public async Task<IActionResult> Notifications()
     {
+        var userId = CurrentUserId;
+
         var s = await _context.Usersettings
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Userid == CurrentUserId);
+            .FirstOrDefaultAsync(x => x.Userid == userId);
+
+        var hasLocation = await _context.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Userid == userId && u.Latitude != null && u.Longitude != null);
 
         return View(new NotificationSettingsViewModel
         {
             NotifyEventJoined = s?.NotifyEventJoined ?? true,
-            NotifyFriends = s?.NotifyFriends ?? true
+            NotifyFriends = s?.NotifyFriends ?? true,
+            NotifyRecommended = s?.NotifyRecommended ?? false,
+            HasLocation = hasLocation
         });
     }
 
@@ -243,38 +281,171 @@ public class SettingsController : Controller
         if (!await _context.Users.AnyAsync(u => u.Userid == userId))
             return await SignOutAsync();
 
-        var existing = await _context.Usersettings.FirstOrDefaultAsync(x => x.Userid == userId);
-        if (existing == null)
+        await SaveSettingsAsync(userId, s =>
         {
-            _context.Usersettings.Add(new Usersetting
-            {
-                Userid = userId,
-                NotifyEventJoined = input.NotifyEventJoined,
-                NotifyFriends = input.NotifyFriends
-            });
-        }
-        else
-        {
-            existing.NotifyEventJoined = input.NotifyEventJoined;
-            existing.NotifyFriends = input.NotifyFriends;
-        }
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
-        {
-            // Aynı anda iki kayıt oluşturuldu: satır artık var, doğrudan güncelle.
-            await _context.Usersettings
-                .Where(x => x.Userid == userId)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(x => x.NotifyEventJoined, input.NotifyEventJoined)
-                    .SetProperty(x => x.NotifyFriends, input.NotifyFriends));
-        }
+            s.NotifyEventJoined = input.NotifyEventJoined;
+            s.NotifyFriends = input.NotifyFriends;
+            s.NotifyRecommended = input.NotifyRecommended;
+        });
 
         TempData["SuccessMessage"] = "Bildirim ayarların güncellendi.";
         return RedirectToAction(nameof(Notifications));
+    }
+
+    // ---------- KONUM ----------
+
+    private static readonly int[] RadiusOptions = { 10, 25, 50, 100, 250 };
+    private const int MaxLocationLabelLength = 100;
+    private const int NearbyShown = 3;
+
+    // Konum yaklaşık 1 km hassasiyetinde saklanır (2 ondalık) ve başkalarına hiçbir yerde gösterilmez.
+    [HttpGet("konum")]
+    public async Task<IActionResult> Location()
+    {
+        var userId = CurrentUserId;
+
+        var u = await _context.Users
+            .AsNoTracking()
+            .Where(x => x.Userid == userId)
+            .Select(x => new { x.Location, x.Latitude, x.Longitude })
+            .FirstOrDefaultAsync();
+
+        if (u == null)
+            return await SignOutAsync();
+
+        var radius = await _context.Usersettings
+            .AsNoTracking()
+            .Where(x => x.Userid == userId)
+            .Select(x => (int?)x.RadiusKm)
+            .FirstOrDefaultAsync() ?? 50;
+
+        var vm = new LocationSettingsViewModel
+        {
+            Label = u.Location,
+            Latitude = u.Latitude,
+            Longitude = u.Longitude,
+            RadiusKm = RadiusOptions.Contains(radius) ? radius : 50,
+            MapsApiKey = _configuration["GoogleMaps:ApiKey"]
+        };
+
+        if (vm.HasLocation)
+            vm.Nearby = await GetNearbyAsync(vm.Latitude!.Value, vm.Longitude!.Value, vm.RadiusKm);
+
+        return View(vm);
+    }
+
+    [HttpPost("konum")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Location(string? latitude, string? longitude, string? label, int radiusKm)
+    {
+        if (!RadiusOptions.Contains(radiusKm))
+        {
+            TempData["ErrorMessage"] = "Geçersiz mesafe seçildi.";
+            return RedirectToAction(nameof(Location));
+        }
+
+        // Koordinatlar tarayıcıdan "40.765400" biçiminde (nokta ile) gelir. Sunucu Türkçe kültürde çalışınca
+        // nokta binlik ayracı sayılır; bu yüzden kültürden bağımsız (InvariantCulture) okunur.
+        if (!double.TryParse(latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat) ||
+            !double.TryParse(longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lng) ||
+            double.IsNaN(lat) || double.IsNaN(lng) ||
+            lat is < -90 or > 90 || lng is < -180 or > 180)
+        {
+            TempData["ErrorMessage"] = "Arama kutusundan ya da haritadan bir konum seç.";
+            return RedirectToAction(nameof(Location));
+        }
+
+        lat = Math.Round(lat, 2);
+        lng = Math.Round(lng, 2);
+
+        label = (label ?? "").Trim();
+        if (label.Length == 0)
+            label = "Seçilen konum";
+        if (label.Length > MaxLocationLabelLength)
+            label = label[..MaxLocationLabelLength];
+
+        var userId = CurrentUserId;
+        var updated = await _context.Users
+            .Where(u => u.Userid == userId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.Location, label)
+                .SetProperty(u => u.Latitude, (double?)lat)
+                .SetProperty(u => u.Longitude, (double?)lng));
+
+        if (updated == 0)
+            return await SignOutAsync();
+
+        await SaveSettingsAsync(userId, s => s.RadiusKm = radiusKm);
+
+        TempData["SuccessMessage"] = "Konum ayarın kaydedildi.";
+        return RedirectToAction(nameof(Location));
+    }
+
+    [HttpPost("konum/sil")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteLocation()
+    {
+        var userId = CurrentUserId;
+
+        await _context.Users
+            .Where(u => u.Userid == userId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.Location, (string?)null)
+                .SetProperty(u => u.Latitude, (double?)null)
+                .SetProperty(u => u.Longitude, (double?)null));
+
+        TempData["SuccessMessage"] = "Konumun silindi. Konuma göre öneri bildirimi almayacaksın.";
+        return RedirectToAction(nameof(Location));
+    }
+
+    // Seçili konumun çevresindeki yaklaşan etkinlikler: önce kaba bir kutuyla veritabanında daralt,
+    // sonra gerçek mesafeyi hesaplayıp en yakın birkaçını al.
+    private async Task<List<EventListItemViewModel>> GetNearbyAsync(double lat, double lng, int radiusKm)
+    {
+        var now = NowForDb();
+        var dLat = radiusKm / 111.0;
+        var dLng = radiusKm / (111.0 * Math.Max(0.1, Math.Cos(lat * Math.PI / 180.0)));
+
+        var candidates = await _context.Events
+            .AsNoTracking()
+            .Where(e => e.Isapproved && e.Date >= now &&
+                        e.Latitude >= lat - dLat && e.Latitude <= lat + dLat &&
+                        e.Longitude >= lng - dLng && e.Longitude <= lng + dLng)
+            .OrderBy(e => e.Date)
+            .Take(60)
+            .Select(e => new
+            {
+                e.Eventid,
+                e.Publicid,
+                e.Eventname,
+                e.Date,
+                e.Location,
+                e.Category,
+                e.Latitude,
+                e.Longitude,
+                ParticipantCount = e.Users.Count(u => u.Userid != e.Createdbyuserid) + 1
+            })
+            .ToListAsync();
+
+        var tr = CultureInfo.GetCultureInfo("tr-TR");
+
+        return candidates
+            .Select(e => new { Event = e, Km = GeoHelper.DistanceKm(lat, lng, e.Latitude, e.Longitude) })
+            .Where(x => x.Km <= radiusKm)
+            .OrderBy(x => x.Km)
+            .Take(NearbyShown)
+            .Select(x => new EventListItemViewModel
+            {
+                Eventid = x.Event.Eventid,
+                Publicid = x.Event.Publicid,
+                Eventname = x.Event.Eventname,
+                Date = x.Event.Date,
+                Location = x.Event.Location,
+                Category = x.Event.Category,
+                ParticipantCount = x.Event.ParticipantCount,
+                Note = x.Km < 1 ? "1 km'den yakın" : $"{x.Km.ToString("0.#", tr)} km uzakta"
+            })
+            .ToList();
     }
 
     // ---------- GÖRÜNÜM (TEMA) ----------

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 namespace EventPlatform.Web.Models.ViewModels;
 
 public class NotificationItem
@@ -36,4 +38,11 @@ public class NotificationSettingsViewModel
 {
     public bool NotifyEventJoined { get; set; } = true;
     public bool NotifyFriends { get; set; } = true;
+
+    // İlgi alanıma uygun, yakınımdaki yeni etkinlikler (varsayılan kapalı)
+    public bool NotifyRecommended { get; set; }
+
+    // Sayfada uyarı göstermek için; formdan alınmaz.
+    [BindNever]
+    public bool HasLocation { get; set; }
 }
