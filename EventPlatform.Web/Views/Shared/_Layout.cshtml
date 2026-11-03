@@ -82,6 +82,17 @@
         </nav>
     </header>
 
+    @if (EventPlatform.Web.Helpers.DemoAccount.IsDemo(User))
+    {
+        <div class="bg-warning-subtle text-warning-emphasis border-bottom small py-2">
+            <div class="container">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Demo oturumu.</strong>
+                Siteyi gönül rahatlığıyla deneyebilirsin. Şifre, kişisel bilgiler ve etkinlik düzenleme/silme bu hesapta kapalı; veriler zaman zaman sıfırlanır.
+            </div>
+        </div>
+    }
+
     <main role="main" class="container py-4 flex-grow-1">
         @RenderBody()
     </main>

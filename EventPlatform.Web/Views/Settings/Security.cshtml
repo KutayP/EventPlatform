@@ -9,7 +9,12 @@
 <div class="card shadow-sm">
     <div class="card-header">Şifre değiştir</div>
     <div class="card-body">
+        @if (EventPlatform.Web.Helpers.DemoAccount.IsDemo(User))
+        {
+            <div class="alert alert-warning small"><i class="bi bi-lock"></i> Demo hesabında bu bölüm değiştirilemez.</div>
+        }
         <form asp-action="Security" method="post">
+            <fieldset disabled="@EventPlatform.Web.Helpers.DemoAccount.IsDemo(User)">
             <div class="mb-3">
                 <label asp-for="CurrentPassword" class="form-label">Mevcut şifre</label>
                 <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" />
@@ -28,6 +33,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary">Şifreyi değiştir</button>
+            </fieldset>
         </form>
     </div>
 </div>

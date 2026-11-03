@@ -330,6 +330,12 @@ public class EventsController : Controller
     [HttpGet("etkinlik/{publicId:length(8)}/duzenle")]
     public async Task<IActionResult> Edit(string publicId)
     {
+        if (DemoAccount.IsDemo(User))
+        {
+            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            return RedirectToAction(nameof(Details), new { slugId = publicId });
+        }
+
         // Yalnızca oluşturan kişi düzenleyebilir.
         var ev = await _context.Events
             .AsNoTracking()
@@ -367,6 +373,12 @@ public class EventsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(string publicId, EventEditViewModel model)
     {
+        if (DemoAccount.IsDemo(User))
+        {
+            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            return RedirectToAction(nameof(Details), new { slugId = publicId });
+        }
+
         var categories = await GetCategoriesAsync();
         var (lat, lng, dateUtc) = ValidateEventForm(model, categories);
 
@@ -413,6 +425,12 @@ public class EventsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string publicId)
     {
+        if (DemoAccount.IsDemo(User))
+        {
+            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            return RedirectToAction(nameof(Details), new { slugId = publicId });
+        }
+
         var userId = CurrentUserId;
         var isAdmin = User.IsInRole("Admin");
 

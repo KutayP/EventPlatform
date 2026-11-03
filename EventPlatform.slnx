@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="EventPlatform.Tests/EventPlatform.Tests.csproj" />
   <Project Path="EventPlatform.Web/EventPlatform.Web.csproj" />
 </Solution>

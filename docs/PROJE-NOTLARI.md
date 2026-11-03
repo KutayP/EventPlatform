@@ -4,7 +4,7 @@ Bu dosya, projeyi yaparken verdiğim kararları ve nedenlerini içerir. Canlı d
 
 ## 1. Proje nedir?
 
-Kullanıcıların etkinlik oluşturup keşfettiği, katıldığı ve katılımcılarla gerçek zamanlı sohbet ettiği bir web uygulaması. Haritadan konum seçilir, ilgi alanlarına göre etkinlik filtrelenir, yöneticiler uygunsuz içeriği yayından kaldırabilir.
+Kullanıcıların etkinlik oluşturup keşfettiği, katıldığı ve katılımcılarla gerçek zamanlı sohbet ettiği sosyal bir web uygulaması. Haritadan konum seçilir, ilgi alanlarına göre etkinlik filtrelenir. Kullanıcılar arkadaş ekler, profillerini yalnızca arkadaşlarına açabilir, anlık bildirim alır ve isterlerse ilgi alanlarına uyan, yakınlarındaki yeni etkinliklerden haberdar olur. Yöneticiler uygunsuz içeriği yayından kaldırabilir.
 
 Amacım yalnızca çalışan bir uygulama değil, **savunabildiğim kararlarla yazılmış** bir proje çıkarmaktı: güvenlik, veri tutarlılığı, hata durumları ve yayına alma süreci dahil.
 
@@ -17,10 +17,12 @@ Amacım yalnızca çalışan bir uygulama değil, **savunabildiğim kararlarla y
 | Veritabanı | PostgreSQL (Neon) | Ücretsiz katmanı var, yerel ve canlı ortam aynı veritabanını kullanabiliyor |
 | Gerçek zamanlı | SignalR | WebSocket'i yönetir, gerekirse otomatik olarak başka yönteme düşer |
 | Harita | Google Maps JavaScript API | Yer arama (Places), adres çözme (Geocoding) |
-| Arayüz | Razor, Bootstrap 5, vanilla JS, flatpickr | Ek framework gerektirmeden hızlı ve okunur |
+| Arayüz | Razor, Bootstrap 5.3, vanilla JS, flatpickr | Ek framework gerektirmeden hızlı ve okunur; açık/koyu tema Bootstrap'in renk modlarıyla |
+| Arama | PostgreSQL `pg_trgm` | Yazım hatalarına dayanıklı kullanıcı araması, ek servis gerektirmez |
+| Test / CI | xUnit, GitHub Actions | Her push'ta derleme, birim testler ve Docker imajı derlemesi |
 | Yayın | Docker, Render | Her ortamda aynı şekilde çalışır, GitHub'a push'ta otomatik yayın |
 
-Kod yapısı: Controller'lar ince tutuldu, formlar için ayrı **ViewModel** sınıfları kullanıldı, veritabanı sınıfları (entity) doğrudan ekrana ya da formlara bağlanmadı.
+Kod yapısı: Controller'lar ince tutuldu, formlar için ayrı **ViewModel** sınıfları kullanıldı, veritabanı sınıfları (entity) doğrudan ekrana ya da formlara bağlanmadı. Birden çok yerden kullanılan iş mantığı (bildirimler) ayrı bir servis sınıfında (`NotificationService`); navbar'daki zil gibi her sayfada görünen parçalar ViewComponent.
 
 ## 3. Veritabanı kararları
 
@@ -43,6 +45,9 @@ Kod yapısı: Controller'lar ince tutuldu, formlar için ayrı **ViewModel** sı
 - **Gizli bilgiler repoda yok.** Bağlantı dizesi, Maps anahtarı ve sertifika yerelde user-secrets, canlıda ortam değişkenlerinden gelir. `.gitignore` bunlar için de kural içerir. Bir sır başka biriyle paylaşılırsa tek çözüm onu yenilemektir; bu yüzden hepsi koda değil ortam değişkenine bağlı, değiştirmek kolay.
 - **Maps anahtarı kısıtlı.** Yalnızca site adresleri (HTTP referrer) ve yalnızca gereken API'ler için geçerli. Daha önce başkasına ait bir anahtarı kullanmadım; kendi anahtarımı oluşturdum.
 - **Sohbet yetkisi sunucuda her çağrıda denetlenir.** İstemcideki "katıldım" bilgisine güvenilmez (Bölüm 7).
+- **Herkese açık demo hesabı.** README'de bir demo girişi var. Bu hesapla şifre ve kişisel bilgiler değiştirilemez, etkinlik düzenlenemez ve silinemez; kontrol sunucuda yapılır, arayüzde de her sayfanın üstünde "demo oturumu" şeridi görünür. Amaç, bir ziyaretçinin şifreyi değiştirip hesabı başkalarına kapatmasını ya da örnek veriyi bozmasını engellemek. Etkinlik oluşturma ve sohbet açık; kötüye kullanımda admin yayından kaldırır, gerekirse örnek veri yeniden yüklenir.
+- **Örnek veri.** Canlı sitedeki kullanıcılar, etkinlikler, sohbetler ve bildirimler kurgusaldır; tek bir SQL betiğiyle yüklenir (şehirlere ve kategorilere dağıtılmış, geçmiş ve gelecek tarihli). Betik kimlik numaralarını sıfırlamaz; böylece eski bir oturum çerezi yeni bir kullanıcıyla eşleşemez. Şifreler betikte veritabanının kendi BCrypt uygulamasıyla (`pgcrypto`) üretilir.
+- **Kimlik her zaman cookie'den gelir.** Arkadaşlık isteği, bildirim okuma ya da ayar değiştirme gibi işlemlerde kullanıcı numarası formdan alınmaz; sorgular "sahibi ben olan kayıt" şartını içerir.
 
 ## 5. Etkinlik yayını ve moderasyon kararı
 
@@ -70,7 +75,7 @@ Kod yapısı: Controller'lar ince tutuldu, formlar için ayrı **ViewModel** sı
 - **Yetki her çağrıda sunucuda kontrol edilir:** etkinlik yayında mı, çağıran oluşturan ya da katılımcı mı?
 - **Hata fırlatmak yerine sonuç döndürme.** Hub metotları `"ok" | "no-access" | "invalid"` döndürür. İlk sürümde yetkisiz çağrıda `HubException` fırlatıyordum; bu hem geliştirme ortamında hata penceresi açıyordu hem de normal bir durumu (ör. etkinliğin yayından kaldırılması) hata gibi ele alıyordu.
 - **Erişim kaybı.** Sohbet açıkken etkinlik yayından kaldırılır ya da kullanıcı ayrılırsa, sunucu `no-access` döner; istemci uyarıyı gösterip sayfayı yeniler. Kullanıcı gruptan da çıkarılır, canlı mesaj almaya devam etmez.
-- **Okunmamış mesaj rozeti.** Her kullanıcı için etkinlik başına "son okuma zamanı" tutulur (`eventreadstatus`). Navbar'daki rozet, bu zamandan sonra başkalarının yazdığı mesajları sayar.
+- **Okunmamış mesajlar.** Her kullanıcı için etkinlik başına "son okuma zamanı" tutulur (`eventreadstatus`). Bu zamandan sonra başkalarının yazdığı mesajı olan etkinlikler bildirim zilinde "X etkinliğinde 3 yeni mesaj" olarak görünür (Bölüm 14). Yeni mesaj gelince diğer katılımcıların zili anında güncellenir.
 - Mesaj uzunluğu 1000 karakterle sınırlı; boş mesaj kabul edilmez.
 - Sohbet geçmişi: son 50 mesaj sayfayla birlikte gelir, canlı mesajlar aynı JS koduyla eklenir.
 
@@ -111,7 +116,56 @@ Yöneticiler, katılımcı olmasalar bile bir etkinliğin sohbet geçmişini **s
 - **Soğuk başlangıç.** Render'ın ücretsiz katmanı 15 dakika kullanılmayınca uykuya geçer; ilk istek bir dakikaya kadar sürebilir. Neon da boştayken uyur. README'de bunu açıkça belirttim. Dış bir izleme servisi `/healthz`'i düzenli çağırarak uygulamayı uyanık tutabilir; Neon'u bilerek uyanık tutmuyorum.
 - HTTPS yönlendirmesini uygulama yalnızca geliştirmede yapar; canlıda bunu Render'ın yük dengeleyicisi yönetir. HSTS yalnızca canlıda açık.
 
-## 12. Karşılaşılan sorunlar ve ders çıkardıklarım
+## 12. Profiller ve gizlilik
+
+- Her kullanıcının herkese açık bir profil sayfası var: `/u/kullaniciadi`. Sayfada kullanıcı adı, **ad ve soyadın baş harfi** ("Deniz A."), ilgi alanları, oluşturduğu ve katıldığı etkinlikler görünür.
+- **E-posta, doğum tarihi ve cinsiyet hiçbir zaman başkasına gösterilmez.** Bu bilgiler yalnızca kişinin kendi ayarlar sayfasında durur.
+- **Görünürlük ayarı:** "Herkese açık" ya da "Yalnızca arkadaşlarım". Kapalı profili yalnızca arkadaşlar, profilin sahibi ve yöneticiler görür; diğerleri yalnızca adı ve arkadaşlık düğmesini görür. İzin verilen değerler veritabanında `CHECK` kısıtıyla da sınırlı.
+- "Profilim" kendi profil sayfama gider; düzenleme ayrı bir yerde (Ayarlar, Bölüm 15). Böylece kullanıcı profilinin başkalarına nasıl göründüğünü doğrudan görür.
+
+## 13. Arkadaşlık ve kullanıcı arama
+
+- `friendships` tablosunda iki kişi arasında **tek bir kayıt** olabilir (yönden bağımsız benzersiz indeks). Durum: `pending` ya da `accepted`.
+- İki taraf birbirine aynı anda istek gönderirse ikinci istek doğrudan kabul sayılır.
+- Reddetme ve iptal kaydı siler; tekrar istek gönderilebilir. Bir kullanıcının bekleyen en fazla 50 isteği olabilir (istek yağdırmayı sınırlar).
+- Aynı anda iki istek gelirse benzersiz kısıt ikincisini engeller; uygulama hatayı (`23505`) yakalayıp anlaşılır bir mesaj gösterir.
+- **Arama:** kullanıcı adı, ad ve soyadın baş harfi üzerinde yapılır (başkalarına gösterdiğimiz bilgi kadar). "kaan y", "@Kaan_Y." ve "kaan_y" aynı sonucu verir: metin hem C#'ta hem SQL'de aynı kuralla sadeleştirilir (Türkçe harfler ASCII'ye, noktalama boşluğa). Birebir eşleşmeler önce, yazım hatalı yakın sonuçlar `pg_trgm` benzerliğiyle arkadan gelir. Arama metni SQL'e yalnızca parametre olarak gider.
+- **Arkadaşlarının etkinlikleri:** ana sayfada "arkadaşlarının oluşturduğu" ve "arkadaşlarının katıldığı" yaklaşan etkinlikler ayrı bölümlerde. Kendi oluşturduğum ve zaten katıldığım etkinlikler burada tekrar gösterilmez; onlar "Yaklaşan etkinliklerim" bölümünde (önümüzdeki 7 gün, en fazla 3) hatırlatma olarak durur.
+
+## 14. Bildirimler
+
+- **Türler:** etkinliğime biri katıldı, arkadaşlık isteği geldi, isteğim kabul edildi, ilgi alanıma uygun yeni etkinlik. Okunmamış sohbet mesajları da aynı zilde görünür ama ayrı kayıt olarak saklanmaz, her seferinde `eventreadstatus` üzerinden hesaplanır.
+- **Metin saklanmaz.** `notifications` tablosu yalnızca tür, alıcı, işlemi yapan ve etkinliği tutar; ekrandaki cümle gösterim sırasında üretilir. Böylece etkinliğin adı değişirse bildirim de güncel adı gösterir, etkinlik silinirse bildirimi de silinir (`ON DELETE CASCADE`).
+- **Geçersiz kalan bildirim silinir.** İstek iptal edilince, reddedilince ya da kabul edilince "istek geldi" bildirimi; katılımcı etkinlikten ayrılınca "katıldı" bildirimi kaldırılır. Zildeki "Kabul et / Reddet" düğmeleri bu sayede yalnızca hâlâ bekleyen isteklerde görünür.
+- **Anlık iletim (SignalR):** ayrı bir hub (`/hubs/notifications`) yalnızca "bildirimlerin değişti" haberi gönderir; `Clients.User(id)` cookie'deki kimliğe göre yalnızca o kişinin bağlantılarına ulaşır. Tarayıcı bu haberi alınca zil menüsünü sunucudan yeniden çeker. Menünün HTML'i sunucuda Razor ile üretildiği için JavaScript'te metin birleştirip XSS riski oluşturmuyorum.
+- **Zil yalnızca okunmamışları gösterir**; "Tümünü gör" sayfası tüm geçmişi Yeni / Son 7 gün / Son 30 gün / Daha önce gruplarıyla sayfa sayfa listeler. Gruplama saat dilimi gerektirmesin diye takvim gününe değil yaşa göre.
+- **Bildirim asıl işlemi bozmaz.** Bildirim oluşturma ya da gönderme hata verirse günlüğe yazılır, katılma ya da arkadaşlık işlemi yine tamamlanır.
+- Her türü kullanıcı ayarlardan kapatabilir (Bölüm 15).
+
+## 15. Ayarlar ve tema
+
+- Ayarlar tek bir yerde, sol menülü kategorilerle: profil bilgileri, ilgi alanları, gizlilik, bildirimler, konum, görünüm, güvenlik (`/ayarlar/...`).
+- Bildirim tercihleri ve mesafe `usersettings` tablosunda. Satır ilk ayar değişikliğinde oluşturulur; yoksa varsayılanlar geçerli. Aynı anda iki istek satır eklemeye çalışırsa benzersiz kısıt hatası yakalanıp güncellemeyle tekrar denenir.
+- **Tema:** açık, koyu ya da cihaz ayarını izle. Bootstrap 5.3'ün `data-bs-theme` özelliğiyle uygulanır. Tema bir hesap bilgisi değil cihaz tercihi olduğu için çerezde tutulur (telefonda koyu, bilgisayarda açık olabilir).
+- Sayfa çizilmeden önce `<head>` içindeki küçük bir betik temayı uygular; açılışta beyaz parlama olmaz. "Cihaz ayarı" seçiliyken sistem teması değişince site de değişir.
+- **Paletler:** açık ve koyu temanın her biri için dört renk paleti. Tüm renkler CSS değişkenlerine bağlandı; palet yalnızca değişkenleri değiştirir, düğmeler, bağlantılar ve vurgular buna göre değişir. Görünümlerdeki sabit `bg-white` gibi sınıflar koyu temada CSS ile düzeltildi.
+- Şifre alanlarındaki göster/gizle düğmesi tüm şifre alanlarına tek bir betikle eklenir; görünümlerde değişiklik gerekmedi.
+
+## 16. Konum ve etkinlik önerileri
+
+- **İsteğe bağlı ve varsayılan kapalı.** Kullanıcı konumunu ve mesafeyi (10–250 km) Ayarlar > Konum'dan seçer, öneri bildirimini Ayarlar > Bildirimler'den açar.
+- **Konum gizliliği.** Koordinatlar iki ondalığa yuvarlanarak (yaklaşık 1 km) saklanır; etiket "İzmit, Kocaeli" gibi kabadır, tam adres saklanmaz. Konum profilde ya da başka bir yerde kimseye gösterilmez, yalnızca eşleştirmede kullanılır ve tek tuşla silinebilir.
+- **Eşleştirme etkinlik oluşturulunca, tek SQL ile:** kategorisi kullanıcının ilgi alanlarından biri olan, kullanıcının seçtiği mesafe içinde kalan (haversine formülü) ve öneriyi açmış kullanıcılar için `INSERT ... SELECT` ile bildirim eklenir, en yakından başlayarak.
+- **Spam sınırları:** bir etkinlik en fazla 200 kişiye önerilir; bir kişiye günde en fazla 3 öneri gider; aynı etkinlik aynı kişiye iki kez önerilmez (`(userid, eventid)` üzerinde kısmi benzersiz indeks + `ON CONFLICT DO NOTHING`). Etkinliği oluşturana öneri gitmez.
+- **Yakındaki etkinlikler önizlemesi:** konum sayfası, seçili konumun çevresindeki en yakın 3 yaklaşan etkinliği gösterir. Önce kaba bir enlem/boylam kutusuyla veritabanında daraltılır, sonra gerçek mesafe hesaplanır. Konum seçilmemişken belirgin biçimde "örnek" olarak işaretlenmiş bir önizleme gösterilir; amaç kullanıcıya özelliğin ne işe yaradığını göstermek.
+
+## 17. Testler ve sürekli entegrasyon
+
+- `EventPlatform.Tests` (xUnit) veritabanı gerektirmeyen saf mantığı test eder: adres slug'ı ve kısa kod ayrıştırma, kısa kod üretimi ve doğrulama, arama metni sadeleştirme, mesafe hesabı, "Deniz A." gösterimi, bildirim metinleri ve "5 dk önce" biçimi, profil görünürlük değerleri.
+- GitHub Actions her push'ta çözümü derler, testleri çalıştırır ve Docker imajını derler (yayınlamaz). README'deki rozet son durumu gösterir.
+- Veritabanına bağlı akışlar (arkadaşlık, bildirim, öneri) şu an elle test ediliyor; bunlar için gerçek bir PostgreSQL ile entegrasyon testi sonraki adım (Bölüm 19).
+
+## 18. Karşılaşılan sorunlar ve ders çıkardıklarım
 
 1. **Sırların yönetimi.** Bağlantı dizesi, API anahtarı ve sertifika yalnızca ortam değişkeni ya da user-secrets'te durur, repoya hiç girmez.
 2. **Oturumların her yeniden başlatmada düşmesi.** Veri koruma anahtarlarının kalıcı ve şifreli saklanmasıyla çözüldü (Bölüm 11).
@@ -120,14 +174,21 @@ Yöneticiler, katılımcı olmasalar bile bir etkinliğin sohbet geçmişini **s
 5. **Tarih/saat dilimi.** UTC sakla, tarayıcıda yerele çevir; formdan gelen yerel saati UTC'ye çevir.
 6. **Sütun uzunluğu uyuşmazlığı.** Form sınırları veritabanı sütunlarından büyük olunca doğrulamadan geçen veri kayıtta hata verdi; sütunlar form sınırlarına göre ayarlandı.
 7. **Arayüz dili karışıklığı.** Kategori adları veritabanında İngilizce, ekranda Türkçe olmalıydı: gösterim için ayrı bir eşleme (`CategoryStyle.Label`) kullanıyorum, veri değişmiyor.
+8. **Kültüre bağlı sayı okuma.** Konum ayarında tarayıcıdan gelen `40.765400` değeri, Türkçe kültürde çalışan sunucuda noktayı binlik ayracı sayarak `40765400` olarak okundu ve form reddedildi. Koordinatları artık kültürden bağımsız (`InvariantCulture`) ayrıştırıyorum.
+9. **`ILIKE` kaçış karakteri.** Npgsql, `EF.Functions.ILike` çağrısında kaçış karakteri verilmezse ters eğik çizgiyle kaçışı kapatıyor; `%` ve `_` karakterleri yine joker sayılıyordu. Kaçış karakterini açıkça (`"\\"`) veriyorum.
+10. **Yanlışlıkla commit'lenen dosyalar.** Repoya giren zip dosyalarını yalnızca silmek yetmedi, geçmişten de temizledim ve `.gitignore`'a kural ekledim.
 
-## 13. Bilinen sınırlar (bilerek yapılmadı)
+## 19. Bilinen sınırlar (bilerek yapılmadı)
 
-- **Otomatik test henüz yok.** Planlandı: slug üretici ve doğrulama mantığı için birim testler, GitHub Actions ile derleme.
+- Veritabanına bağlı akışlar için otomatik entegrasyon testi yok (birim testler var).
 - Şifre sıfırlama ve e-posta doğrulama yok (e-posta gönderen bir servis gerektirir).
 - Profil fotoğrafı yok (dosya saklama kararı gerektirir).
-- Kullanıcı sayısı arttığında sayfalama yok; etkinlik listesi tek sayfada.
+- Etkinlik listesinde sayfalama yok; kullanıcı sayısı artınca gerekir.
 - İstek hızı sınırlama (rate limiting) ve şikâyet/raporlama düğmesi yok.
 - Sohbet mesajı düzenleme ve silme yok.
 - Admin işlemleri için denetim günlüğü yok.
+- Eski bildirimler otomatik silinmiyor; büyük ölçekte bir saklama süresi gerekir.
+- Öneri yalnızca etkinlik oluşturulunca hesaplanır; etkinliğin konumu ya da kategorisi sonradan değişirse yeniden önerilmez.
+- Kullanıcı araması tüm kullanıcıları tarar; büyük ölçekte trigram (GIN) indeksi gerekir.
+- Tema tercihi cihaz başına (çerez); hesapla senkronize değil.
 - Ücretsiz katmanlar nedeniyle soğuk başlangıç gecikmesi var.

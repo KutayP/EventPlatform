@@ -69,6 +69,12 @@ public class SettingsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ProfileInfo(SettingsProfileViewModel input)
     {
+        if (DemoAccount.IsDemo(User))
+        {
+            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            return RedirectToAction(nameof(ProfileInfo));
+        }
+
         var userId = CurrentUserId;
 
         if (input.Birthdate.Date > DateTime.Today || input.Birthdate.Year < 1900)
@@ -521,6 +527,12 @@ public class SettingsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Security(ChangePasswordInput input)
     {
+        if (DemoAccount.IsDemo(User))
+        {
+            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            return RedirectToAction(nameof(Security));
+        }
+
         var user = await _context.Users.FindAsync(CurrentUserId);
         if (user == null)
             return await SignOutAsync();

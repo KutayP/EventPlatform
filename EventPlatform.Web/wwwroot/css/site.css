@@ -374,6 +374,21 @@ input[type="password"]::-ms-reveal {
     color: var(--ep-primary) !important;
 }
 
+/* Bootstrap'in derlenmiş varsayılan mavisini (#0d6efd) kullanan bileşenler de palet rengini izlesin. */
+.list-group {
+    --bs-list-group-active-bg: var(--bs-primary);
+    --bs-list-group-active-border-color: var(--bs-primary);
+}
+
+.form-check-input:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.nav-pills {
+    --bs-nav-pills-link-active-bg: var(--bs-primary);
+}
+
 /* ===== Koyu tema paletleri (Ayarlar > Görünüm). Yalnızca koyu temada geçerli. Düğme/vurgu renkleri de palete göre değişir. ===== */
 [data-bs-theme="dark"][data-ep-palette="slate"] {
     --bs-body-bg: #1a1d23;
