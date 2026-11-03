@@ -2,9 +2,10 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Önce yalnızca proje dosyası: paket geri yüklemesi katman önbelleğinden gelsin.
-# ReadyToRun için hedef platform (linux-x64) geri yüklemede de belirtilmeli.
+# ReadyToRun için hedef platform ve ayarın kendisi geri yüklemede de verilmeli;
+# aksi halde önceden derleme aracı (Crossgen2) indirilmez ve yayın adımı hata verir.
 COPY EventPlatform.Web/EventPlatform.Web.csproj EventPlatform.Web/
-RUN dotnet restore EventPlatform.Web/EventPlatform.Web.csproj -r linux-x64
+RUN dotnet restore EventPlatform.Web/EventPlatform.Web.csproj -r linux-x64 -p:PublishReadyToRun=true
 
 COPY EventPlatform.Web/ EventPlatform.Web/
 
