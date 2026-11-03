@@ -277,6 +277,70 @@ public class SettingsController : Controller
         return RedirectToAction(nameof(Notifications));
     }
 
+    // ---------- GÖRÜNÜM (TEMA) ----------
+
+    // Tema ve palet bu cihaza özeldir (çerez); hesap bilgisi değildir.
+    private const string ThemeCookie = "ep-theme";
+    private const string PaletteCookie = "ep-palette";
+    private const string LightCookie = "ep-light";
+
+    private static readonly string[] Palettes = { "default", "slate", "soft", "graphite" };
+    private static readonly string[] LightPalettes = { "default", "cream", "mint", "sky" };
+
+    [HttpGet("gorunum")]
+    public IActionResult Appearance()
+    {
+        var theme = Request.Cookies[ThemeCookie];
+        var palette = Request.Cookies[PaletteCookie];
+        var light = Request.Cookies[LightCookie];
+
+        return View(new ThemeSettingsViewModel
+        {
+            Theme = theme is "light" or "dark" ? theme : "system",
+            Palette = palette != null && Palettes.Contains(palette) ? palette : "default",
+            LightPalette = light != null && LightPalettes.Contains(light) ? light : "default"
+        });
+    }
+
+    [HttpPost("gorunum")]
+    [ValidateAntiForgeryToken]
+    public IActionResult Appearance(string? theme, string? palette, string? lightPalette)
+    {
+        if (theme is not ("system" or "light" or "dark") ||
+            palette == null || !Palettes.Contains(palette) ||
+            lightPalette == null || !LightPalettes.Contains(lightPalette))
+        {
+            TempData["ErrorMessage"] = "Geçersiz görünüm seçeneği.";
+            return RedirectToAction(nameof(Appearance));
+        }
+
+        SetOrClearCookie(ThemeCookie, theme, clear: theme == "system");
+        SetOrClearCookie(PaletteCookie, palette, clear: palette == "default");
+        SetOrClearCookie(LightCookie, lightPalette, clear: lightPalette == "default");
+
+        TempData["SuccessMessage"] = "Görünüm ayarın kaydedildi.";
+        return RedirectToAction(nameof(Appearance));
+    }
+
+    private void SetOrClearCookie(string name, string value, bool clear)
+    {
+        if (clear)
+        {
+            Response.Cookies.Delete(name, new CookieOptions { Path = "/" });
+            return;
+        }
+
+        Response.Cookies.Append(name, value, new CookieOptions
+        {
+            Path = "/",
+            MaxAge = TimeSpan.FromDays(365),
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            IsEssential = true
+        });
+    }
+
     // ---------- GÜVENLİK (ŞİFRE) ----------
 
     [HttpGet("guvenlik")]

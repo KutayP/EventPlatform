@@ -1,11 +1,47 @@
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+
+    // Tema tercihi bu cihazda çerezde tutulur: "light", "dark" ya da (çerez yoksa) "system".
+    var themePref = Context.Request.Cookies["ep-theme"];
+    if (themePref != "light" && themePref != "dark")
+    {
+        themePref = "system";
+    }
+
+    // Koyu tema paleti (Ayarlar > Görünüm): "default", "slate", "soft", "graphite".
+    var palettePref = Context.Request.Cookies["ep-palette"];
+    if (palettePref != "slate" && palettePref != "soft" && palettePref != "graphite")
+    {
+        palettePref = "default";
+    }
+
+    // Açık tema paleti: "default", "cream", "mint", "sky".
+    var lightPref = Context.Request.Cookies["ep-light"];
+    if (lightPref != "cream" && lightPref != "mint" && lightPref != "sky")
+    {
+        lightPref = "default";
+    }
 }
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme-pref="@themePref" data-ep-palette="@palettePref" data-ep-light="@lightPref" data-bs-theme="@(themePref == "dark" ? "dark" : "light")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+        // Sayfa çizilmeden önce çalışır (açık/koyu arasında göz kırpmayı önler). "system": cihaz ayarını izler.
+        (function () {
+            var d = document.documentElement, pref = d.getAttribute('data-theme-pref');
+            var mq = window.matchMedia('(prefers-color-scheme: dark)');
+            function apply() {
+                d.setAttribute('data-bs-theme', pref === 'dark' || (pref !== 'light' && mq.matches) ? 'dark' : 'light');
+            }
+            apply();
+            if (mq.addEventListener) mq.addEventListener('change', function () { pref = d.getAttribute('data-theme-pref'); apply(); });
+            window.epApplyTheme = function (p) { d.setAttribute('data-theme-pref', p); pref = p; apply(); };
+            window.epApplyPalette = function (p) { d.setAttribute('data-ep-palette', p); };
+            window.epApplyLight = function (p) { d.setAttribute('data-ep-light', p); };
+        })();
+    </script>
     <title>@ViewData["Title"] - EventPlatform</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ctext x='16' y='23' font-size='19' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3EE%3C/text%3E%3C/svg%3E" />
     <script type="importmap"></script>
@@ -19,7 +55,7 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+        <nav class="navbar navbar-expand-lg bg-body border-bottom sticky-top">
             <div class="container">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
                     <span class="brand-mark">E</span>

@@ -1,0 +1,125 @@
+@using EventPlatform.Web.Models.ViewModels
+@model ThemeSettingsViewModel
+
+@{
+    ViewData["Title"] = "Görünüm";
+    Layout = "_SettingsLayout";
+    ViewData["SettingsSection"] = "appearance";
+
+    var options = new[]
+    {
+        new { Value = "system", Label = "Cihaz ayarını izle", Hint = "Telefonun ya da bilgisayarın açık/koyu ayarına uyar.", Icon = "bi-circle-half" },
+        new { Value = "light",  Label = "Açık",                Hint = "Her zaman açık tema.",                                  Icon = "bi-sun" },
+        new { Value = "dark",   Label = "Koyu",                Hint = "Her zaman koyu tema.",                                  Icon = "bi-moon-stars" }
+    };
+
+    // Zemin, kart, vurgu renkleri (önizleme kutucukları için)
+    var palettes = new[]
+    {
+        new { Value = "default",  Label = "Gece",      Hint = "Çok koyu, yüksek kontrast.", Bg = "#0f1117", Surface = "#171a23", Accent = "#4f46e5" },
+        new { Value = "slate",    Label = "Gri",       Hint = "Daha yumuşak, düşük kontrast.", Bg = "#1a1d23", Surface = "#22262e", Accent = "#6366f1" },
+        new { Value = "soft",     Label = "Yumuşak",   Hint = "Çok koyu olmayan, orta koyu gri.", Bg = "#2b2e36", Surface = "#353943", Accent = "#6d78f0" },
+        new { Value = "graphite", Label = "Antrasit",  Hint = "Nötr, hafif mor tonlu.", Bg = "#1d1d20", Surface = "#27272b", Accent = "#7c5cf0" }
+    };
+
+    var lightPalettes = new[]
+    {
+        new { Value = "default", Label = "Klasik",     Hint = "Şu anki açık tema.", Bg = "#f6f7fb", Surface = "#ffffff", Accent = "#4f46e5" },
+        new { Value = "cream",   Label = "Krem",       Hint = "Sıcak krem tonları, turuncu vurgulu.", Bg = "#f7f3ec", Surface = "#fffdf9", Accent = "#c2410c" },
+        new { Value = "mint",    Label = "Nane",       Hint = "Hafif yeşilimsi, turkuaz vurgulu.", Bg = "#eef5f2", Surface = "#fafdfc", Accent = "#0f766e" },
+        new { Value = "sky",     Label = "Gökyüzü",    Hint = "Hafif mavimsi, mavi vurgulu.", Bg = "#eef3fb", Surface = "#fbfcff", Accent = "#2563eb" }
+    };
+}
+
+<form asp-action="Appearance" method="post">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Tema</div>
+        <div class="card-body">
+            @foreach (var o in options)
+            {
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="theme" id="theme-@o.Value"
+                           value="@o.Value" checked="@(Model.Theme == o.Value)" />
+                    <label class="form-check-label" for="theme-@o.Value">
+                        <i class="bi @o.Icon me-1"></i><strong>@o.Label</strong>
+                        <span class="d-block text-muted small">@o.Hint</span>
+                    </label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Koyu tema renkleri</div>
+        <div class="card-body">
+            <p class="text-muted small">Yalnızca koyu temada geçerlidir. Seçince hemen önizlenir; farklı paletleri deneyip beğendiğini kaydet.</p>
+            @foreach (var p in palettes)
+            {
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="palette" id="palette-@p.Value"
+                           value="@p.Value" checked="@(Model.Palette == p.Value)" />
+                    <label class="form-check-label d-flex align-items-center gap-3" for="palette-@p.Value">
+                        <span class="d-inline-flex rounded border overflow-hidden flex-shrink-0" style="width: 64px; height: 36px; background: @p.Bg;">
+                            <span class="m-1 rounded flex-grow-1 d-flex align-items-end p-1" style="background: @p.Surface;">
+                                <span class="rounded-pill" style="width: 60%; height: 6px; background: @p.Accent;"></span>
+                            </span>
+                        </span>
+                        <span>
+                            <strong>@p.Label</strong>
+                            <span class="d-block text-muted small">@p.Hint</span>
+                        </span>
+                    </label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">Açık tema renkleri</div>
+        <div class="card-body">
+            <p class="text-muted small">Yalnızca açık temada geçerlidir. Düğme ve vurgu renkleri de palete göre değişir. Önizlemek için yukarıdan "Açık"ı seç.</p>
+            @foreach (var p in lightPalettes)
+            {
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="lightPalette" id="light-@p.Value"
+                           value="@p.Value" checked="@(Model.LightPalette == p.Value)" />
+                    <label class="form-check-label d-flex align-items-center gap-3" for="light-@p.Value">
+                        <span class="d-inline-flex rounded border overflow-hidden flex-shrink-0" style="width: 64px; height: 36px; background: @p.Bg;">
+                            <span class="m-1 rounded flex-grow-1 d-flex align-items-end p-1 border" style="background: @p.Surface;">
+                                <span class="rounded-pill" style="width: 60%; height: 6px; background: @p.Accent;"></span>
+                            </span>
+                        </span>
+                        <span>
+                            <strong>@p.Label</strong>
+                            <span class="d-block text-muted small">@p.Hint</span>
+                        </span>
+                    </label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <p class="text-muted small">Bu ayarlar yalnızca bu tarayıcıda/cihazda geçerlidir.</p>
+    <button type="submit" class="btn btn-primary">Kaydet</button>
+</form>
+
+@section Scripts {
+    <script>
+        // Seçimi kaydetmeden önce hemen önizle.
+        document.querySelectorAll('input[name="theme"]').forEach(function (r) {
+            r.addEventListener('change', function () {
+                if (window.epApplyTheme) window.epApplyTheme(r.value);
+            });
+        });
+        document.querySelectorAll('input[name="palette"]').forEach(function (r) {
+            r.addEventListener('change', function () {
+                if (window.epApplyPalette) window.epApplyPalette(r.value);
+            });
+        });
+        document.querySelectorAll('input[name="lightPalette"]').forEach(function (r) {
+            r.addEventListener('change', function () {
+                if (window.epApplyLight) window.epApplyLight(r.value);
+            });
+        });
+    </script>
+}

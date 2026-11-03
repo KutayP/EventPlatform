@@ -131,9 +131,31 @@ public class NotificationService
             Items = items,
             Unread = unread,
             UnreadOnly = unreadOnly,
-            HasMore = hasMore
+            HasMore = hasMore,
+            Chats = await GetUnreadChatsAsync(userId)
         };
     }
+
+    // Okunmamış = başkasının yazdığı, sahibi olduğum/katıldığım yayındaki etkinlikteki,
+    // son okuma zamanımdan sonra gelen mesajlar. Okuma kaydı hiç yoksa hepsi okunmamış sayılır.
+    private Task<List<UnreadEventItem>> GetUnreadChatsAsync(int userId) =>
+        _context.Messages
+            .AsNoTracking()
+            .Where(m => m.Senderid != userId
+                && m.Event.Isapproved
+                && (m.Event.Createdbyuserid == userId || m.Event.Users.Any(u => u.Userid == userId))
+                && !_context.Eventreadstatuses.Any(r =>
+                    r.Userid == userId && r.Eventid == m.Eventid && r.Lastreadat >= m.Senttime))
+            .GroupBy(m => new { m.Eventid, m.Event.Publicid, m.Event.Eventname })
+            .Select(g => new UnreadEventItem
+            {
+                Eventid = g.Key.Eventid,
+                Publicid = g.Key.Publicid,
+                Eventname = g.Key.Eventname,
+                Count = g.Count()
+            })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
 
     private Task PingAsync(int userId) =>
         _hub.Clients.User(userId.ToString()).SendAsync("NotificationsChanged");

@@ -18,6 +18,12 @@ public class NotificationPanelViewModel
     public List<NotificationItem> Items { get; set; } = new();
     public int Unread { get; set; }
 
+    // Okunmamış sohbet mesajları (etkinlik başına). Bildirim gibi saklanmaz, her seferinde hesaplanır.
+    public List<UnreadEventItem> Chats { get; set; } = new();
+
+    // Zildeki rozet: okunmamış bildirimler + okunmamış mesajı olan etkinlik sayısı.
+    public int TotalUnread => Unread + Chats.Count;
+
     // Zil menüsü yalnızca okunmamışları gösterir; /bildirimler sayfası tüm geçmişi.
     public bool UnreadOnly { get; set; }
 

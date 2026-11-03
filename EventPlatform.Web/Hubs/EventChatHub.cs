@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using EventPlatform.Web.Models;
 using EventPlatform.Web.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -19,10 +19,12 @@ public class EventChatHub : Hub
     private const string Invalid = "invalid";
 
     private readonly AppDbContext _context;
+    private readonly IHubContext<NotificationHub> _notificationHub;
 
-    public EventChatHub(AppDbContext context)
+    public EventChatHub(AppDbContext context, IHubContext<NotificationHub> notificationHub)
     {
         _context = context;
+        _notificationHub = notificationHub;
     }
 
     // Kimlik cookie'deki imzalı claim'den gelir, istemciden asla alınmaz.
@@ -95,6 +97,20 @@ public class EventChatHub : Hub
             sentAt = DateTime.SpecifyKind(sentAt, DateTimeKind.Utc)
         });
 
+        // Diğer katılımcıların zilindeki "yeni mesaj" bilgisi anında güncellensin.
+        var participantIds = await _context.Events
+            .AsNoTracking()
+            .Where(e => e.Eventid == eventId)
+            .SelectMany(e => e.Users.Select(u => u.Userid))
+            .ToListAsync();
+        var creatorId = await _context.Events
+            .AsNoTracking()
+            .Where(e => e.Eventid == eventId)
+            .Select(e => e.Createdbyuserid)
+            .FirstOrDefaultAsync();
+        participantIds.Add(creatorId);
+        await PingAsync(participantIds.Where(id => id != userId).Distinct());
+
         return Ok;
     }
 
@@ -138,6 +154,24 @@ public class EventChatHub : Hub
             {
                 // İki istek aynı anda satır eklemeye çalıştıysa diğeri kazanmıştır, sorun değil.
             }
+        }
+
+        // Okuyanın kendi zili (ve diğer sekmeleri) güncellensin.
+        await PingAsync(new[] { userId });
+    }
+
+    // Zil menüsünü yenilemesi için ilgili kullanıcılara haber verir. Başarısız olursa sohbet etkilenmez.
+    private async Task PingAsync(IEnumerable<int> userIds)
+    {
+        try
+        {
+            var ids = userIds.Select(i => i.ToString()).ToList();
+            if (ids.Count > 0)
+                await _notificationHub.Clients.Users(ids).SendAsync("NotificationsChanged");
+        }
+        catch
+        {
+            // Bildirim zili yardımcı bir özellik; hata sohbeti bozmamalı.
         }
     }
 }

@@ -4,14 +4,29 @@
 @model NotificationPanelViewModel
 
 @* Zil menüsü ve bildirimler sayfasında ortak liste. data-unread: JavaScript rozeti buradan günceller. *@
-<div data-unread="@Model.Unread">
-    @if (Model.Items.Count == 0)
+<div data-unread="@Model.TotalUnread">
+    @if (Model.Items.Count == 0 && Model.Chats.Count == 0)
     {
         <div class="px-3 py-4 text-center text-muted small">@(Model.UnreadOnly ? "Yeni bildirimin yok." : "Henüz bildirimin yok.")</div>
     }
     else
     {
         <div class="list-group list-group-flush">
+            @* Okunmamış sohbet mesajları: etkinliğin sayfasına götürür (sohbet orada). *@
+            @foreach (var c in Model.Chats)
+            {
+                <div class="list-group-item list-group-item-action bg-primary-subtle">
+                    <a href="@Url.EventUrl(c.Eventname, c.Publicid)"
+                       class="d-flex gap-3 align-items-start text-reset text-decoration-none">
+                        <i class="bi bi-chat-dots fs-5 text-primary"></i>
+                        <span class="flex-grow-1">
+                            <span class="d-block small">“@c.Eventname” etkinliğinde <strong>@c.Count yeni mesaj</strong></span>
+                        </span>
+                        <span class="badge rounded-pill bg-primary mt-1">&nbsp;</span>
+                    </a>
+                </div>
+            }
+
             @foreach (var n in Model.Items)
             {
                 <div class="list-group-item list-group-item-action @(n.IsRead ? "" : "bg-primary-subtle")">

@@ -1,8 +1,12 @@
 /* ===== Tema: Bootstrap değişkenlerini ve bileşenleri tek bir vurgu rengine bağlar ===== */
 :root {
-    --ep-primary: #4f46e5;
+    --ep-primary: #4f46e5;            /* vurgu: metin, bağlantı, simge */
     --ep-primary-dark: #4338ca;
     --ep-primary-soft: #e0e7ff;
+    --ep-fill-hover: #4338ca;         /* dolgulu düğme: üzerine gelince */
+    --ep-fill-active: #3730a3;        /* dolgulu düğme: basılınca */
+    --ep-grad-1: #4f46e5;             /* logo ve ana sayfa başlığı gradyanı */
+    --ep-grad-2: #7c3aed;
     --ep-text-muted: #64748b;
     --ep-border: #e5e7f0;
     --bs-primary: #4f46e5;
@@ -17,6 +21,40 @@
     --bs-border-color: #e5e7f0;
     --bs-border-radius: 0.75rem;
     --bs-border-radius-lg: 1rem;
+
+    /* Tema renkleri: koyu temada aşağıda yeniden tanımlanır. */
+    --ep-surface: #fff;
+    --ep-surface-2: #fafbff;
+    --ep-heading: #0f172a;
+    --ep-nav-link: #475569;
+    --bs-primary-bg-subtle: #e0e7ff;
+    --bs-primary-text-emphasis: #3730a3;
+}
+
+/* ===== Koyu tema (html[data-bs-theme="dark"]) ===== */
+[data-bs-theme="dark"] {
+    --ep-primary: #818cf8;
+    --ep-primary-dark: #6366f1;
+    --ep-primary-soft: #2b2f6e;
+    --ep-text-muted: #94a3b8;
+    --ep-border: #2a2f3f;
+    --ep-surface: #171a23;
+    --ep-surface-2: #1d212c;
+    --ep-heading: #f1f5f9;
+    --ep-nav-link: #cbd5e1;
+    --bs-link-color: #818cf8;
+    --bs-link-color-rgb: 129, 140, 248;
+    --bs-link-hover-color: #a5b4fc;
+    --bs-link-hover-color-rgb: 165, 180, 252;
+    --bs-body-color: #e2e8f0;
+    --bs-body-color-rgb: 226, 232, 240;
+    --bs-body-bg: #0f1117;
+    --bs-body-bg-rgb: 15, 17, 23;
+    --bs-emphasis-color: #f8fafc;
+    --bs-border-color: #2a2f3f;
+    --bs-primary-bg-subtle: #23265e;
+    --bs-primary-text-emphasis: #a5b4fc;
+    color-scheme: dark;
 }
 
 html {
@@ -36,27 +74,27 @@ h1, h2, h3, h4, h5 {
 
 /* ===== Düğmeler ===== */
 .btn-primary {
-    --bs-btn-bg: #4f46e5;
-    --bs-btn-border-color: #4f46e5;
-    --bs-btn-hover-bg: #4338ca;
-    --bs-btn-hover-border-color: #4338ca;
-    --bs-btn-active-bg: #3730a3;
-    --bs-btn-active-border-color: #3730a3;
-    --bs-btn-disabled-bg: #4f46e5;
-    --bs-btn-disabled-border-color: #4f46e5;
-    --bs-btn-focus-shadow-rgb: 79, 70, 229;
+    --bs-btn-bg: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--ep-fill-hover);
+    --bs-btn-hover-border-color: var(--ep-fill-hover);
+    --bs-btn-active-bg: var(--ep-fill-active);
+    --bs-btn-active-border-color: var(--ep-fill-active);
+    --bs-btn-disabled-bg: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
 }
 
 .btn-outline-primary {
-    --bs-btn-color: #4f46e5;
-    --bs-btn-border-color: #4f46e5;
-    --bs-btn-hover-bg: #4f46e5;
-    --bs-btn-hover-border-color: #4f46e5;
-    --bs-btn-active-bg: #4f46e5;
-    --bs-btn-active-border-color: #4f46e5;
-    --bs-btn-disabled-color: #4f46e5;
-    --bs-btn-disabled-border-color: #4f46e5;
-    --bs-btn-focus-shadow-rgb: 79, 70, 229;
+    --bs-btn-color: var(--ep-primary);
+    --bs-btn-border-color: var(--ep-primary);
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-border-color: var(--bs-primary);
+    --bs-btn-active-bg: var(--ep-fill-active);
+    --bs-btn-active-border-color: var(--ep-fill-active);
+    --bs-btn-disabled-color: var(--ep-primary);
+    --bs-btn-disabled-border-color: var(--ep-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
 }
 
 .btn {
@@ -69,8 +107,8 @@ h1, h2, h3, h4, h5 {
     .form-control:focus,
     .form-select:focus,
     .form-check-input:focus {
-        box-shadow: 0 0 0 0.1rem #fff, 0 0 0 0.25rem rgba(79, 70, 229, 0.45);
-        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.1rem var(--ep-surface), 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.45);
+        border-color: var(--bs-primary);
     }
 
 /* ===== Navbar ===== */
@@ -85,7 +123,7 @@ h1, h2, h3, h4, h5 {
     gap: 0.6rem;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: #0f172a;
+    color: var(--ep-heading);
 }
 
 .brand-mark {
@@ -95,15 +133,19 @@ h1, h2, h3, h4, h5 {
     width: 32px;
     height: 32px;
     border-radius: 9px;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    background: linear-gradient(135deg, var(--ep-grad-1), var(--ep-grad-2));
     color: #fff;
     font-size: 1rem;
     font-weight: 700;
 }
 
+.navbar.bg-body {
+    background-color: var(--ep-surface) !important;
+}
+
 .navbar .nav-link,
 .navbar .nav-link.text-dark {
-    color: #475569 !important;
+    color: var(--ep-nav-link) !important;
     font-weight: 500;
 }
 
@@ -130,7 +172,7 @@ h1, h2, h3, h4, h5 {
 }
 
     .dropdown-item:active {
-        background-color: var(--ep-primary);
+        background-color: var(--bs-primary);
     }
 
 /* ===== Kartlar ===== */
@@ -141,7 +183,7 @@ h1, h2, h3, h4, h5 {
 }
 
 .card-header {
-    background: #fff;
+    background: var(--ep-surface);
     border-bottom: 1px solid var(--ep-border);
     font-weight: 600;
     border-radius: 1rem 1rem 0 0 !important;
@@ -157,7 +199,7 @@ h1, h2, h3, h4, h5 {
     }
 
     .event-card .card-title a {
-        color: #0f172a;
+        color: var(--ep-heading);
         text-decoration: none;
     }
 
@@ -220,11 +262,11 @@ h1, h2, h3, h4, h5 {
 
 /* ===== Ana sayfa ===== */
 .hero {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, var(--ep-grad-1) 0%, var(--ep-grad-2) 100%);
     color: #fff;
     border-radius: 1.5rem;
     padding: 3.5rem 2.5rem;
-    box-shadow: 0 20px 40px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 20px 40px rgba(var(--bs-primary-rgb), 0.25);
 }
 
     .hero .hero-lead {
@@ -256,7 +298,7 @@ h1, h2, h3, h4, h5 {
 /* ===== Alt bilgi ===== */
 .footer {
     border-top: 1px solid var(--ep-border);
-    background: #fff;
+    background: var(--ep-surface);
     color: var(--ep-text-muted);
     padding: 1.25rem 0;
     font-size: 0.9rem;
@@ -270,3 +312,265 @@ h1, h2, h3, h4, h5 {
         .footer a:hover {
             color: var(--ep-primary);
         }
+
+/* ===== Koyu tema: bileşen ve sabit renk düzeltmeleri ===== */
+[data-bs-theme="dark"] .card {
+    --bs-card-bg: var(--ep-surface);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    --bs-dropdown-bg: var(--ep-surface);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] .list-group {
+    --bs-list-group-bg: transparent;
+}
+
+/* Görünümlerdeki sabit "bg-white / bg-light / text-dark" sınıfları koyu temada okunabilir kalsın. */
+[data-bs-theme="dark"] .bg-white {
+    background-color: var(--ep-surface) !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: var(--ep-surface-2) !important;
+}
+
+[data-bs-theme="dark"] .text-dark:not(.bg-warning) {
+    color: var(--bs-body-color) !important;
+}
+
+/* Sohbet kutusundaki sabit açık arka plan */
+[data-bs-theme="dark"] [style*="fafbff"] {
+    background: var(--ep-surface-2) !important;
+}
+
+[data-bs-theme="dark"] .hero {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+[data-bs-theme="dark"] .event-card:hover {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+/* Kategori rozetleri (koyu temada koyu zemin + açık yazı) */
+[data-bs-theme="dark"] .cat-0 { background: #2b2f6e; color: #c7d2fe; }
+[data-bs-theme="dark"] .cat-1 { background: #064e3b; color: #a7f3d0; }
+[data-bs-theme="dark"] .cat-2 { background: #78350f; color: #fde68a; }
+[data-bs-theme="dark"] .cat-3 { background: #881337; color: #fecdd3; }
+[data-bs-theme="dark"] .cat-4 { background: #0c4a6e; color: #bae6fd; }
+[data-bs-theme="dark"] .cat-5 { background: #4c1d95; color: #ddd6fe; }
+[data-bs-theme="dark"] .cat-6 { background: #134e4a; color: #99f6e4; }
+[data-bs-theme="dark"] .cat-7 { background: #7c2d12; color: #fed7aa; }
+[data-bs-theme="dark"] .cat-8 { background: #831843; color: #fbcfe8; }
+[data-bs-theme="dark"] .cat-9 { background: #365314; color: #d9f99d; }
+
+/* Tarayıcının kendi göz simgesi (Edge) çift görünmesin */
+input[type="password"]::-ms-reveal {
+    display: none;
+}
+
+[data-bs-theme="dark"] .text-primary {
+    color: var(--ep-primary) !important;
+}
+
+/* ===== Koyu tema paletleri (Ayarlar > Görünüm). Yalnızca koyu temada geçerli. Düğme/vurgu renkleri de palete göre değişir. ===== */
+[data-bs-theme="dark"][data-ep-palette="slate"] {
+    --bs-body-bg: #1a1d23;
+    --bs-body-bg-rgb: 26, 29, 35;
+    --bs-body-color: #cbd5e1;
+    --bs-body-color-rgb: 203, 213, 225;
+    --bs-emphasis-color: #f1f5f9;
+    --bs-border-color: #363c47;
+    --ep-text-muted: #8b95a5;
+    --ep-border: #363c47;
+    --ep-surface: #22262e;
+    --ep-surface-2: #2a2f38;
+    --ep-heading: #eef2f7;
+    --ep-nav-link: #b8c2d1;
+    --bs-primary: #6366f1;
+    --bs-primary-rgb: 99, 102, 241;
+    --ep-fill-hover: #4f52e0;
+    --ep-fill-active: #4338ca;
+    --ep-grad-1: #6366f1;
+    --ep-grad-2: #8b5cf6;
+    --ep-primary: #9aa2f7;
+    --ep-primary-dark: #4f52e0;
+    --ep-primary-soft: #2c3057;
+    --bs-link-color: #9aa2f7;
+    --bs-link-color-rgb: 154, 162, 247;
+    --bs-link-hover-color: #b4baf9;
+    --bs-link-hover-color-rgb: 180, 186, 249;
+    --bs-primary-bg-subtle: #2c3057;
+    --bs-primary-text-emphasis: #b4baf9;
+}
+
+[data-bs-theme="dark"][data-ep-palette="soft"] {
+    --bs-body-bg: #2b2e36;
+    --bs-body-bg-rgb: 43, 46, 54;
+    --bs-body-color: #e1e6ee;
+    --bs-body-color-rgb: 225, 230, 238;
+    --bs-emphasis-color: #f8fafc;
+    --bs-border-color: #4a505c;
+    --ep-text-muted: #a0aabb;
+    --ep-border: #4a505c;
+    --ep-surface: #353943;
+    --ep-surface-2: #3d424d;
+    --ep-heading: #f4f6fa;
+    --ep-nav-link: #cdd5e2;
+    --bs-primary: #6d78f0;
+    --bs-primary-rgb: 109, 120, 240;
+    --ep-fill-hover: #5b66e6;
+    --ep-fill-active: #4c57d6;
+    --ep-grad-1: #6d78f0;
+    --ep-grad-2: #9b7bf3;
+    --ep-primary: #a5acff;
+    --ep-primary-dark: #5b66e6;
+    --ep-primary-soft: #3b4070;
+    --bs-link-color: #a5acff;
+    --bs-link-color-rgb: 165, 172, 255;
+    --bs-link-hover-color: #bcc1ff;
+    --bs-link-hover-color-rgb: 188, 193, 255;
+    --bs-primary-bg-subtle: #3b4070;
+    --bs-primary-text-emphasis: #bcc1ff;
+}
+
+[data-bs-theme="dark"][data-ep-palette="graphite"] {
+    --bs-body-bg: #1d1d20;
+    --bs-body-bg-rgb: 29, 29, 32;
+    --bs-body-color: #d6d4da;
+    --bs-body-color-rgb: 214, 212, 218;
+    --bs-emphasis-color: #f5f4f7;
+    --bs-border-color: #3d3d43;
+    --ep-text-muted: #9b99a3;
+    --ep-border: #3d3d43;
+    --ep-surface: #27272b;
+    --ep-surface-2: #2f2f34;
+    --ep-heading: #f0eef3;
+    --ep-nav-link: #c4c2ca;
+    --bs-primary: #7c5cf0;
+    --bs-primary-rgb: 124, 92, 240;
+    --ep-fill-hover: #6d4be0;
+    --ep-fill-active: #5b3dc8;
+    --ep-grad-1: #7c5cf0;
+    --ep-grad-2: #a855f7;
+    --ep-primary: #a99af5;
+    --ep-primary-dark: #6d4be0;
+    --ep-primary-soft: #322f4d;
+    --bs-link-color: #a99af5;
+    --bs-link-color-rgb: 169, 154, 245;
+    --bs-link-hover-color: #c0b5f8;
+    --bs-link-hover-color-rgb: 192, 181, 248;
+    --bs-primary-bg-subtle: #322f4d;
+    --bs-primary-text-emphasis: #c0b5f8;
+}
+
+/* ===== Açık tema paletleri. Yalnızca açık temada geçerli. ===== */
+[data-bs-theme="light"][data-ep-light="cream"] {
+    --bs-body-bg: #f7f3ec;
+    --bs-body-bg-rgb: 247, 243, 236;
+    --bs-body-color: #2d2a26;
+    --bs-body-color-rgb: 45, 42, 38;
+    --bs-emphasis-color: #1c1a17;
+    --bs-border-color: #e5dccd;
+    --ep-text-muted: #7b7366;
+    --ep-border: #e5dccd;
+    --ep-surface: #fffdf9;
+    --ep-surface-2: #f1ece2;
+    --ep-heading: #1c1a17;
+    --ep-nav-link: #5a5348;
+    --bs-primary: #c2410c;
+    --bs-primary-rgb: 194, 65, 12;
+    --ep-fill-hover: #9a3412;
+    --ep-fill-active: #7c2d12;
+    --ep-grad-1: #c2410c;
+    --ep-grad-2: #f08c00;
+    --ep-primary: #c2410c;
+    --ep-primary-dark: #9a3412;
+    --ep-primary-soft: #ffedd5;
+    --bs-link-color: #c2410c;
+    --bs-link-color-rgb: 194, 65, 12;
+    --bs-link-hover-color: #9a3412;
+    --bs-link-hover-color-rgb: 154, 52, 18;
+    --bs-primary-bg-subtle: #ffedd5;
+    --bs-primary-text-emphasis: #9a3412;
+}
+
+[data-bs-theme="light"][data-ep-light="mint"] {
+    --bs-body-bg: #eef5f2;
+    --bs-body-bg-rgb: 238, 245, 242;
+    --bs-body-color: #1d2b27;
+    --bs-body-color-rgb: 29, 43, 39;
+    --bs-emphasis-color: #10201c;
+    --bs-border-color: #d3e3dd;
+    --ep-text-muted: #64796f;
+    --ep-border: #d3e3dd;
+    --ep-surface: #fafdfc;
+    --ep-surface-2: #e3eeea;
+    --ep-heading: #10201c;
+    --ep-nav-link: #4a5f57;
+    --bs-primary: #0f766e;
+    --bs-primary-rgb: 15, 118, 110;
+    --ep-fill-hover: #115e59;
+    --ep-fill-active: #134e4a;
+    --ep-grad-1: #0f766e;
+    --ep-grad-2: #0891b2;
+    --ep-primary: #0f766e;
+    --ep-primary-dark: #115e59;
+    --ep-primary-soft: #ccfbf1;
+    --bs-link-color: #0f766e;
+    --bs-link-color-rgb: 15, 118, 110;
+    --bs-link-hover-color: #115e59;
+    --bs-link-hover-color-rgb: 17, 94, 89;
+    --bs-primary-bg-subtle: #ccfbf1;
+    --bs-primary-text-emphasis: #115e59;
+}
+
+[data-bs-theme="light"][data-ep-light="sky"] {
+    --bs-body-bg: #eef3fb;
+    --bs-body-bg-rgb: 238, 243, 251;
+    --bs-body-color: #1c2740;
+    --bs-body-color-rgb: 28, 39, 64;
+    --bs-emphasis-color: #0f1a33;
+    --bs-border-color: #d6e0f0;
+    --ep-text-muted: #66748f;
+    --ep-border: #d6e0f0;
+    --ep-surface: #fbfcff;
+    --ep-surface-2: #e5ecf8;
+    --ep-heading: #0f1a33;
+    --ep-nav-link: #4b5a78;
+    --bs-primary: #2563eb;
+    --bs-primary-rgb: 37, 99, 235;
+    --ep-fill-hover: #1d4ed8;
+    --ep-fill-active: #1e40af;
+    --ep-grad-1: #2563eb;
+    --ep-grad-2: #0ea5e9;
+    --ep-primary: #2563eb;
+    --ep-primary-dark: #1d4ed8;
+    --ep-primary-soft: #dbeafe;
+    --bs-link-color: #2563eb;
+    --bs-link-color-rgb: 37, 99, 235;
+    --bs-link-hover-color: #1d4ed8;
+    --bs-link-hover-color-rgb: 29, 78, 216;
+    --bs-primary-bg-subtle: #dbeafe;
+    --bs-primary-text-emphasis: #1e40af;
+}
+
+/* Açık paletlerde kartlar zeminden ayrışsın (varsayılan açık temada kartlar zeminle aynı renktir). */
+[data-bs-theme="light"][data-ep-light="cream"] .card,
+[data-bs-theme="light"][data-ep-light="mint"] .card,
+[data-bs-theme="light"][data-ep-light="sky"] .card {
+    --bs-card-bg: var(--ep-surface);
+}
+
+[data-bs-theme="light"][data-ep-light="cream"] .dropdown-menu,
+[data-bs-theme="light"][data-ep-light="mint"] .dropdown-menu,
+[data-bs-theme="light"][data-ep-light="sky"] .dropdown-menu {
+    --bs-dropdown-bg: var(--ep-surface);
+}
+
+[data-bs-theme="light"][data-ep-light="cream"] .list-group,
+[data-bs-theme="light"][data-ep-light="mint"] .list-group,
+[data-bs-theme="light"][data-ep-light="sky"] .list-group {
+    --bs-list-group-bg: transparent;
+}

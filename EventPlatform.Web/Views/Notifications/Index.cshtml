@@ -41,6 +41,14 @@
     </div>
 </div>
 
+@if (Model.Chats.Count > 0)
+{
+    <h2 class="h6 text-muted text-uppercase mt-4 mb-2">Okunmamış mesajlar</h2>
+    <div class="card shadow-sm overflow-hidden mb-4">
+        <partial name="_NotificationList" model="@(new NotificationPanelViewModel { Chats = Model.Chats, Unread = Model.Unread })" />
+    </div>
+}
+
 @if (Model.Items.Count == 0)
 {
     <div class="card shadow-sm">

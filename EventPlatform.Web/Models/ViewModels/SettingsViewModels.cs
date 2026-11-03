@@ -28,3 +28,15 @@ public class PrivacySettingsViewModel
     // "public" ya da "friends" (bkz. ProfileVisibilities)
     public string ProfileVisibility { get; set; } = ProfileVisibilities.Public;
 }
+
+// Ayarlar > Görünüm: "system", "light" ya da "dark"
+public class ThemeSettingsViewModel
+{
+    public string Theme { get; set; } = "system";
+
+    // Koyu tema paleti: "default", "slate", "soft", "graphite"
+    public string Palette { get; set; } = "default";
+
+    // Açık tema paleti: "default", "cream", "mint", "sky"
+    public string LightPalette { get; set; } = "default";
+}
