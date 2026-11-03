@@ -46,7 +46,8 @@ Kod yapısı: Controller'lar ince tutuldu, formlar için ayrı **ViewModel** sı
 - **Maps anahtarı kısıtlı.** Yalnızca site adresleri (HTTP referrer) ve yalnızca gereken API'ler için geçerli. Daha önce başkasına ait bir anahtarı kullanmadım; kendi anahtarımı oluşturdum.
 - **Sohbet yetkisi sunucuda her çağrıda denetlenir.** İstemcideki "katıldım" bilgisine güvenilmez (Bölüm 7).
 - **Herkese açık demo hesabı.** README'de bir demo girişi var. Bu hesapla şifre ve kişisel bilgiler değiştirilemez, etkinlik düzenlenemez ve silinemez; kontrol sunucuda yapılır, arayüzde de her sayfanın üstünde "demo oturumu" şeridi görünür. Amaç, bir ziyaretçinin şifreyi değiştirip hesabı başkalarına kapatmasını ya da örnek veriyi bozmasını engellemek. Etkinlik oluşturma ve sohbet açık; kötüye kullanımda admin yayından kaldırır, gerekirse örnek veri yeniden yüklenir.
-- **Örnek veri.** Canlı sitedeki kullanıcılar, etkinlikler, sohbetler ve bildirimler kurgusaldır; tek bir SQL betiğiyle yüklenir (şehirlere ve kategorilere dağıtılmış, geçmiş ve gelecek tarihli). Betik kimlik numaralarını sıfırlamaz; böylece eski bir oturum çerezi yeni bir kullanıcıyla eşleşemez. Şifreler betikte veritabanının kendi BCrypt uygulamasıyla (`pgcrypto`) üretilir.
+- **Örnek veri ve gece sıfırlaması.** Canlı sitedeki kullanıcılar, etkinlikler, sohbetler ve bildirimler kurgusaldır; `db/seed.sql` ile yüklenir (şehirlere ve kategorilere dağıtılmış, geçmiş ve gelecek tarihli). Zamanlanmış bir GitHub Actions iş akışı bu betiği her gece çalıştırır: ziyaretçilerin değişiklikleri silinir ve tarihler çalıştırıldığı güne göre üretildiği için etkinlikler hep "yaklaşan" kalır. Şifreler dosyada yok; GitHub secret'larından psql değişkeni olarak verilir ve veritabanının kendi BCrypt uygulamasıyla (`pgcrypto`) hashlenir. Değişken eksikse betik hiçbir şeyi silmeden durur.
+- **Silinen kullanıcının oturumu.** Betik kimlik numaralarını sıfırlamaz, böylece eski bir çerez yeni bir kullanıcıyla eşleşemez. Ayrıca her istekte (bir dakikalık önbellekle) çerezdeki kullanıcının numarası ve adıyla hâlâ var olduğu kontrol edilir; yoksa oturum kapatılır.
 - **Kimlik her zaman cookie'den gelir.** Arkadaşlık isteği, bildirim okuma ya da ayar değiştirme gibi işlemlerde kullanıcı numarası formdan alınmaz; sorgular "sahibi ben olan kayıt" şartını içerir.
 
 ## 5. Etkinlik yayını ve moderasyon kararı
@@ -191,4 +192,6 @@ Yöneticiler, katılımcı olmasalar bile bir etkinliğin sohbet geçmişini **s
 - Öneri yalnızca etkinlik oluşturulunca hesaplanır; etkinliğin konumu ya da kategorisi sonradan değişirse yeniden önerilmez.
 - Kullanıcı araması tüm kullanıcıları tarar; büyük ölçekte trigram (GIN) indeksi gerekir.
 - Tema tercihi cihaz başına (çerez); hesapla senkronize değil.
+- Gece sıfırlaması tüm verileri siler; ziyaretçilerin demo sitesinde açtığı hesaplar da gider (demo için bilinçli bir tercih).
+- GitHub, 60 gün hiç değişiklik olmayan depolarda zamanlanmış iş akışlarını durdurur; o durumda Actions sekmesinden yeniden etkinleştirilmeli.
 - Ücretsiz katmanlar nedeniyle soğuk başlangıç gecikmesi var.

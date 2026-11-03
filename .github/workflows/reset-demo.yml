@@ -1,0 +1,34 @@
+name: Reset demo data
+
+# Demo verisini her gece sıfırlar: ziyaretçilerin yaptığı değişiklikler silinir,
+# örnek etkinliklerin tarihleri yeniden "yaklaşan" olur.
+on:
+  schedule:
+    - cron: '0 1 * * *'   # her gün 01:00 UTC = 04:00 Türkiye saati
+  workflow_dispatch:       # Actions sekmesinden elle de çalıştırılabilir
+
+concurrency:
+  group: reset-demo
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    name: Reload sample data
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Ensure psql is available
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+
+      - name: Load sample data
+        env:
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+          ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
+          SAMPLE_USER_PASSWORD: ${{ secrets.DEMO_SAMPLE_USER_PASSWORD }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+               -v admin_password="$ADMIN_PASSWORD" \
+               -v user_password="$SAMPLE_USER_PASSWORD" \
+               -f db/seed.sql

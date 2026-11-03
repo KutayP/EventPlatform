@@ -6,7 +6,7 @@ A full-stack social event platform: users discover and create events, join them,
 
 **Live demo:** https://eventplatform-wvls.onrender.com
 
-**Demo login:** `demo` / `Demo1234!` (password, personal info and event editing/deleting are disabled for this account; the sample data is reset from time to time)
+**Demo login:** `demo` / `Demo1234!` (password, personal info and event editing/deleting are disabled for this account; the sample data is reset every night)
 
 > The demo runs on free hosting tiers. If it has been idle, the first request can take up to a minute while the server and database wake up.
 
@@ -89,7 +89,7 @@ dotnet test
 
 ## Deployment
 
-The app is containerized (`Dockerfile`) and deployed on Render, with PostgreSQL on Neon. Configuration is supplied through environment variables (`ConnectionStrings__DefaultConnection`, `GoogleMaps__ApiKey`, `DataProtection__CertificateBase64`, `DataProtection__CertificatePassword`). `/healthz` is the health-check endpoint. GitHub Actions builds the solution, runs the tests and builds the Docker image on every push to `main`.
+The app is containerized (`Dockerfile`) and deployed on Render, with PostgreSQL on Neon. Configuration is supplied through environment variables (`ConnectionStrings__DefaultConnection`, `GoogleMaps__ApiKey`, `DataProtection__CertificateBase64`, `DataProtection__CertificatePassword`). `/healthz` is the health-check endpoint. GitHub Actions builds the solution, runs the tests and builds the Docker image on every push to `main`; a second scheduled workflow reloads the demo data from [`db/seed.sql`](db/seed.sql) every night (secrets: `DEMO_DATABASE_URL`, `DEMO_ADMIN_PASSWORD`, `DEMO_SAMPLE_USER_PASSWORD`).
 
 ## Design notes
 

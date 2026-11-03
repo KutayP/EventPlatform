@@ -14,6 +14,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -54,6 +55,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
+
+        // Silinmiş kullanıcının (ör. demo verisi sıfırlandıktan sonra) eski oturumu geçersiz sayılır.
+        options.Events.OnValidatePrincipal = UserSessionValidator.ValidateAsync;
     });
 
 var app = builder.Build();
