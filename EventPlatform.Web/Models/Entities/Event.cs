@@ -29,6 +29,9 @@ public partial class Event
 
     public string Publicid { get; set; } = null!;
 
+    // Örnek veriden (db/seed.sql) gelen etkinlik: demo hesabı bunları düzenleyemez ve silemez.
+    public bool Issample { get; set; }
+
     public virtual User Createdbyuser { get; set; } = null!;
 
     public virtual ICollection<Eventparticipationrequest> Eventparticipationrequests { get; set; } = new List<Eventparticipationrequest>();

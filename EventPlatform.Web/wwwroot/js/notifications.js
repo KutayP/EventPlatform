@@ -15,7 +15,7 @@
 
     async function refresh() {
         try {
-            const r = await fetch('/bildirimler/panel', {
+            const r = await fetch('/notifications/panel', {
                 credentials: 'same-origin',
                 cache: 'no-store',
                 headers: { 'X-Requested-With': 'fetch' }

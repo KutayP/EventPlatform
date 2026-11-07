@@ -59,7 +59,7 @@ public class FriendsController : Controller
 
     // ---------- SAYFA ----------
 
-    [HttpGet("arkadaslar")]
+    [HttpGet("friends")]
     public async Task<IActionResult> Index(string? q)
     {
         var me = CurrentUserId;
@@ -178,7 +178,7 @@ public class FriendsController : Controller
 
     // ---------- İSTEK GÖNDER ----------
 
-    [HttpPost("arkadaslar/istek/{username}")]
+    [HttpPost("friends/request/{username}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SendRequest(string username, string? returnUrl)
     {
@@ -271,7 +271,7 @@ public class FriendsController : Controller
         return updated;
     }
 
-    [HttpPost("arkadaslar/kabul/{username}")]
+    [HttpPost("friends/accept/{username}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Accept(string username, string? returnUrl)
     {
@@ -285,7 +285,7 @@ public class FriendsController : Controller
         return Back(returnUrl);
     }
 
-    [HttpPost("arkadaslar/reddet/{username}")]
+    [HttpPost("friends/decline/{username}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Decline(string username, string? returnUrl)
     {
@@ -308,7 +308,7 @@ public class FriendsController : Controller
         return Back(returnUrl);
     }
 
-    [HttpPost("arkadaslar/iptal/{username}")]
+    [HttpPost("friends/cancel/{username}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(string username, string? returnUrl)
     {
@@ -331,7 +331,7 @@ public class FriendsController : Controller
         return Back(returnUrl);
     }
 
-    [HttpPost("arkadaslar/cikar/{username}")]
+    [HttpPost("friends/remove/{username}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Remove(string username, string? returnUrl)
     {

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EventPlatform.Web.Controllers;
 
 [Authorize]
-[Route("bildirimler")]
+[Route("notifications")]
 public class NotificationsController : Controller
 {
     private const int PanelSize = 8;
@@ -51,7 +51,7 @@ public class NotificationsController : Controller
     }
 
     // Bildirime tıklayınca: okundu işaretle, ilgili sayfaya git.
-    [HttpGet("{id:int}/git")]
+    [HttpGet("{id:int}/open")]
     public async Task<IActionResult> Open(int id)
     {
         var userId = CurrentUserId;
@@ -91,7 +91,7 @@ public class NotificationsController : Controller
             : RedirectToAction(nameof(Index));
     }
 
-    [HttpPost("tumunu-oku")]
+    [HttpPost("read-all")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkAllRead()
     {

@@ -52,6 +52,9 @@ public class EventsController : Controller
 
     // ---------- LİSTE ----------
 
+    // Tüm sayfa adresleri İngilizce ve küçük harfli: /events, /events/new, /events/mine, /events/{slug-kod}.
+    // Sabit kelimeler ("new", "mine") parametreli adresten önce eşleşir, bu yüzden etkinlik koduyla çakışmaz.
+    [HttpGet("events")]
     public async Task<IActionResult> Index(string? q, string? category)
     {
         var now = NowForDb();
@@ -101,6 +104,7 @@ public class EventsController : Controller
     // ---------- BENİM ETKİNLİKLERİM ----------
 
     [Authorize]
+    [HttpGet("events/mine")]
     public async Task<IActionResult> My()
     {
         var userId = CurrentUserId;
@@ -152,10 +156,10 @@ public class EventsController : Controller
             e.Isapproved || e.Createdbyuserid == userId || isAdmin ||
             e.Users.Any(u => u.Userid == userId));
 
-    // Adres: /etkinlik/kadikoy-sahil-fotograf-yuruyusu-k7x2m9ab
+    // Adres: /events/kadikoy-sahil-fotograf-yuruyusu-k7x2m9ab
     // Etkinliği bulan kısım sondaki kısa koddur; baştaki yazı (slug) yalnızca okunabilirlik içindir.
     // Slug eskiyse ya da eksikse (ad değişmiş olabilir) güncel adrese yönlendirilir.
-    [HttpGet("etkinlik/{slugId}")]
+    [HttpGet("events/{slugId}")]
     public async Task<IActionResult> Details(string slugId)
     {
         var (slug, publicId) = SlugHelper.Split(slugId);
@@ -264,7 +268,7 @@ public class EventsController : Controller
     // ---------- OLUŞTUR ----------
 
     [Authorize]
-    [HttpGet]
+    [HttpGet("events/new")]
     public async Task<IActionResult> Create()
     {
         await FillFormViewDataAsync();
@@ -272,7 +276,7 @@ public class EventsController : Controller
     }
 
     [Authorize]
-    [HttpPost]
+    [HttpPost("events/new")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EventCreateViewModel model)
     {
@@ -284,6 +288,13 @@ public class EventsController : Controller
             await FillFormViewDataAsync(categories);
             return View(model);
         }
+
+        // Aynı etkinlik (aynı kişi, ad, tarih ve konum) zaten varsa yenisini oluşturma, onu göster.
+        // Düğmeye art arda basılınca gelen ikinci istek böyle yakalanır; tam aynı anda gelenleri
+        // veritabanındaki benzersiz indeks (uq_events_creator_name_date_location) engeller.
+        var existing = await FindSameEventAsync(model.Eventname.Trim(), dateUtc, model.Location!.Trim());
+        if (existing != null)
+            return RedirectToExisting(existing.Value);
 
         Event BuildEvent() => new Event
         {
@@ -321,18 +332,46 @@ public class EventsController : Controller
             {
                 _context.Entry(ev).State = EntityState.Detached;
             }
+            catch (DbUpdateException ex) when (IsDuplicateEvent(ex))
+            {
+                // Aynı anda gelen ikinci istek: ilki kaydedildi, onu göster.
+                _context.Entry(ev).State = EntityState.Detached;
+                var first = await FindSameEventAsync(ev.Eventname, ev.Date, ev.Location);
+                if (first != null)
+                    return RedirectToExisting(first.Value);
+                throw;
+            }
         }
+    }
+
+    // Kullanıcının aynı ad, tarih ve konumla daha önce oluşturduğu etkinlik (varsa).
+    private async Task<(string Name, string PublicId)?> FindSameEventAsync(string name, DateTime dateUtc, string location)
+    {
+        var userId = CurrentUserId;
+        var hit = await _context.Events
+            .AsNoTracking()
+            .Where(e => e.Createdbyuserid == userId && e.Eventname == name && e.Date == dateUtc && e.Location == location)
+            .Select(e => new { e.Eventname, e.Publicid })
+            .FirstOrDefaultAsync();
+
+        return hit == null ? null : (hit.Eventname, hit.Publicid);
+    }
+
+    private IActionResult RedirectToExisting((string Name, string PublicId) existing)
+    {
+        TempData["SuccessMessage"] = "Bu etkinlik zaten oluşturulmuş.";
+        return RedirectToAction(nameof(Details), new { slugId = SlugHelper.Compose(existing.Name, existing.PublicId) });
     }
 
     // ---------- DÜZENLE ----------
 
     [Authorize]
-    [HttpGet("etkinlik/{publicId:length(8)}/duzenle")]
+    [HttpGet("events/{publicId:length(8)}/edit")]
     public async Task<IActionResult> Edit(string publicId)
     {
-        if (DemoAccount.IsDemo(User))
+        if (await IsDemoOnSampleEventAsync(publicId))
         {
-            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            TempData["ErrorMessage"] = DemoAccount.SampleEventMessage;
             return RedirectToAction(nameof(Details), new { slugId = publicId });
         }
 
@@ -369,13 +408,13 @@ public class EventsController : Controller
     }
 
     [Authorize]
-    [HttpPost("etkinlik/{publicId:length(8)}/duzenle")]
+    [HttpPost("events/{publicId:length(8)}/edit")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(string publicId, EventEditViewModel model)
     {
-        if (DemoAccount.IsDemo(User))
+        if (await IsDemoOnSampleEventAsync(publicId))
         {
-            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            TempData["ErrorMessage"] = DemoAccount.SampleEventMessage;
             return RedirectToAction(nameof(Details), new { slugId = publicId });
         }
 
@@ -411,7 +450,18 @@ public class EventsController : Controller
         ev.Latitude = lat;
         ev.Longitude = lng;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsDuplicateEvent(ex))
+        {
+            ModelState.AddModelError(string.Empty, "Aynı ad, tarih ve konumla başka bir etkinliğin zaten var.");
+            model.Publicid = publicId;
+            model.OriginalDateUtc = null;
+            await FillFormViewDataAsync(categories);
+            return View(model);
+        }
 
         TempData["SuccessMessage"] = "Etkinlik güncellendi.";
         return RedirectToAction(nameof(Details),
@@ -421,13 +471,13 @@ public class EventsController : Controller
     // ---------- SİL ----------
 
     [Authorize]
-    [HttpPost("etkinlik/{publicId:length(8)}/sil")]
+    [HttpPost("events/{publicId:length(8)}/delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string publicId)
     {
-        if (DemoAccount.IsDemo(User))
+        if (await IsDemoOnSampleEventAsync(publicId))
         {
-            TempData["ErrorMessage"] = DemoAccount.BlockedMessage;
+            TempData["ErrorMessage"] = DemoAccount.SampleEventMessage;
             return RedirectToAction(nameof(Details), new { slugId = publicId });
         }
 
@@ -495,6 +545,15 @@ public class EventsController : Controller
     private static bool IsPublicIdCollision(DbUpdateException ex) =>
         ex.InnerException is Npgsql.PostgresException { SqlState: "23505", ConstraintName: "uq_events_publicid" };
 
+    // Demo hesabı yalnızca örnek veriden gelen etkinliklerde düzenleme/silme yapamaz;
+    // kendi oluşturduğu etkinlikleri düzenleyip silebilir.
+    private async Task<bool> IsDemoOnSampleEventAsync(string publicId) =>
+        DemoAccount.IsDemo(User) &&
+        await _context.Events.AnyAsync(e => e.Publicid == publicId && e.Issample);
+
+    private static bool IsDuplicateEvent(DbUpdateException ex) =>
+        ex.InnerException is Npgsql.PostgresException { SqlState: "23505", ConstraintName: "uq_events_creator_name_date_location" };
+
     private async Task FillFormViewDataAsync(List<string>? categories = null)
     {
         ViewData["Categories"] = categories ?? await GetCategoriesAsync();
@@ -504,7 +563,7 @@ public class EventsController : Controller
     // ---------- KATIL / AYRIL ----------
 
     [Authorize]
-    [HttpPost("etkinlik/{publicId:length(8)}/katil")]
+    [HttpPost("events/{publicId:length(8)}/join")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Join(string publicId)
     {
@@ -545,7 +604,7 @@ public class EventsController : Controller
     }
 
     [Authorize]
-    [HttpPost("etkinlik/{publicId:length(8)}/ayril")]
+    [HttpPost("events/{publicId:length(8)}/leave")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Leave(string publicId)
     {

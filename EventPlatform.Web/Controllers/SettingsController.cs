@@ -12,9 +12,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Web.Controllers;
 
-// Ayarlar: /ayarlar/profil, /ayarlar/ilgi-alanlari, /ayarlar/gizlilik, /ayarlar/guvenlik
+// Ayarlar: /settings/profile, /interests, /privacy, /notifications, /location, /appearance, /security
 [Authorize]
-[Route("ayarlar")]
+[Route("settings")]
 public class SettingsController : Controller
 {
     private readonly AppDbContext _context;
@@ -45,7 +45,7 @@ public class SettingsController : Controller
 
     // ---------- PROFİL BİLGİLERİ ----------
 
-    [HttpGet("profil")]
+    [HttpGet("profile")]
     public async Task<IActionResult> ProfileInfo()
     {
         var vm = await _context.Users
@@ -65,7 +65,7 @@ public class SettingsController : Controller
         return vm == null ? await SignOutAsync() : View(vm);
     }
 
-    [HttpPost("profil")]
+    [HttpPost("profile")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ProfileInfo(SettingsProfileViewModel input)
     {
@@ -136,13 +136,13 @@ public class SettingsController : Controller
         return new InterestsSettingsViewModel { Interests = interests };
     }
 
-    [HttpGet("ilgi-alanlari")]
+    [HttpGet("interests")]
     public async Task<IActionResult> Interests()
     {
         return View(await BuildInterestsAsync(CurrentUserId));
     }
 
-    [HttpPost("ilgi-alanlari")]
+    [HttpPost("interests")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Interests(List<int>? selectedInterestIds)
     {
@@ -187,7 +187,7 @@ public class SettingsController : Controller
 
     // ---------- GİZLİLİK ----------
 
-    [HttpGet("gizlilik")]
+    [HttpGet("privacy")]
     public async Task<IActionResult> Privacy()
     {
         var vm = await _context.Users
@@ -203,7 +203,7 @@ public class SettingsController : Controller
         return vm == null ? await SignOutAsync() : View(vm);
     }
 
-    [HttpPost("gizlilik")]
+    [HttpPost("privacy")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Privacy(string? visibility)
     {
@@ -256,7 +256,7 @@ public class SettingsController : Controller
 
     // ---------- BİLDİRİMLER ----------
 
-    [HttpGet("bildirimler")]
+    [HttpGet("notifications")]
     public async Task<IActionResult> Notifications()
     {
         var userId = CurrentUserId;
@@ -278,7 +278,7 @@ public class SettingsController : Controller
         });
     }
 
-    [HttpPost("bildirimler")]
+    [HttpPost("notifications")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Notifications(NotificationSettingsViewModel input)
     {
@@ -305,7 +305,7 @@ public class SettingsController : Controller
     private const int NearbyShown = 3;
 
     // Konum yaklaşık 1 km hassasiyetinde saklanır (2 ondalık) ve başkalarına hiçbir yerde gösterilmez.
-    [HttpGet("konum")]
+    [HttpGet("location")]
     public async Task<IActionResult> Location()
     {
         var userId = CurrentUserId;
@@ -340,7 +340,7 @@ public class SettingsController : Controller
         return View(vm);
     }
 
-    [HttpPost("konum")]
+    [HttpPost("location")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Location(string? latitude, string? longitude, string? label, int radiusKm)
     {
@@ -387,7 +387,7 @@ public class SettingsController : Controller
         return RedirectToAction(nameof(Location));
     }
 
-    [HttpPost("konum/sil")]
+    [HttpPost("location/delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteLocation()
     {
@@ -464,7 +464,7 @@ public class SettingsController : Controller
     private static readonly string[] Palettes = { "default", "slate", "soft", "graphite" };
     private static readonly string[] LightPalettes = { "default", "cream", "mint", "sky" };
 
-    [HttpGet("gorunum")]
+    [HttpGet("appearance")]
     public IActionResult Appearance()
     {
         var theme = Request.Cookies[ThemeCookie];
@@ -479,7 +479,7 @@ public class SettingsController : Controller
         });
     }
 
-    [HttpPost("gorunum")]
+    [HttpPost("appearance")]
     [ValidateAntiForgeryToken]
     public IActionResult Appearance(string? theme, string? palette, string? lightPalette)
     {
@@ -520,10 +520,10 @@ public class SettingsController : Controller
 
     // ---------- GÜVENLİK (ŞİFRE) ----------
 
-    [HttpGet("guvenlik")]
+    [HttpGet("security")]
     public IActionResult Security() => View(new ChangePasswordInput());
 
-    [HttpPost("guvenlik")]
+    [HttpPost("security")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Security(ChangePasswordInput input)
     {

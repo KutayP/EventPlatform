@@ -32,3 +32,28 @@
         document.querySelectorAll('input[type="password"]').forEach(enhance);
     });
 })();
+
+// Çift gönderimi engelle: bir POST formu gönderilince düğmeleri kilitle.
+// Doğrulama hatası olan ya da JavaScript ile gönderilen (preventDefault yapılan) formlara dokunmaz.
+(function () {
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (e.defaultPrevented || !(form instanceof HTMLFormElement)) return;
+        if ((form.getAttribute('method') || 'get').toLowerCase() !== 'post') return;
+
+        // Gönderim başladıktan sonra kilitle (tıklanan düğmenin değeri forma girsin diye bir sonraki adımda).
+        setTimeout(function () {
+            form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (b) {
+                b.disabled = true;
+            });
+        }, 0);
+    });
+
+    // Geri tuşuyla önbellekten dönülen sayfada düğmeler kilitli kalmasın.
+    window.addEventListener('pageshow', function (e) {
+        if (!e.persisted) return;
+        document.querySelectorAll('button[type="submit"]:disabled, input[type="submit"]:disabled').forEach(function (b) {
+            b.disabled = false;
+        });
+    });
+})();

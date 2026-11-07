@@ -3,7 +3,7 @@ using System.Text;
 namespace EventPlatform.Web.Helpers;
 
 // "Kadıköy Sahil Fotoğraf Yürüyüşü" -> "kadikoy-sahil-fotograf-yuruyusu"
-// Adres: /etkinlik/{slug}-{kısa kod}. Etkinliği bulan kısım sondaki koddur, slug yalnızca okunabilirlik içindir.
+// Adres: /events/{slug}-{kısa kod}. Etkinliği bulan kısım sondaki koddur, slug yalnızca okunabilirlik içindir.
 public static class SlugHelper
 {
     private const string Fallback = "etkinlik";

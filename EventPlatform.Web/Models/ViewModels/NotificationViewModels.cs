@@ -26,7 +26,7 @@ public class NotificationPanelViewModel
     // Zildeki rozet: okunmamış bildirimler + okunmamış mesajı olan etkinlik sayısı.
     public int TotalUnread => Unread + Chats.Count;
 
-    // Zil menüsü yalnızca okunmamışları gösterir; /bildirimler sayfası tüm geçmişi.
+    // Zil menüsü yalnızca okunmamışları gösterir; /notifications sayfası tüm geçmişi.
     public bool UnreadOnly { get; set; }
 
     public int Page { get; set; } = 1;

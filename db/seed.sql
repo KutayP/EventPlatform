@@ -184,12 +184,12 @@ FROM (VALUES
 JOIN users u ON u.username = v.username
 JOIN interests i ON i.interestname = v.interest;
 
--- 4) Etkinlikler (saatler İstanbul yerel saatine göre, UTC olarak saklanır)
-INSERT INTO events (createdbyuserid, eventname, description, date, duration, location, category, latitude, longitude, isapproved, publicid)
+-- 4) Etkinlikler (saatler İstanbul yerel saatine göre, UTC olarak saklanır; issample = örnek veri, demo hesabı bunları düzenleyemez/silemez)
+INSERT INTO events (createdbyuserid, eventname, description, date, duration, location, category, latitude, longitude, isapproved, publicid, issample)
 SELECT u.userid, v.name, v.descr,
        ((date_trunc('day', now() AT TIME ZONE 'Europe/Istanbul') + make_interval(days => v.d) + v.t::interval)
             AT TIME ZONE 'Europe/Istanbul') AT TIME ZONE 'utc',
-       v.dur, v.loc, v.cat, v.lat, v.lng, v.published, v.pid
+       v.dur, v.loc, v.cat, v.lat, v.lng, v.published, v.pid, true
 FROM (VALUES
     ('fjkkmid7', 'demo', 'Moda''da gün batımı fotoğraf yürüyüşü', 'Moda İskelesi''nden başlayıp sahil boyunca yürüyoruz. Gün batımı, uzun pozlama ve sokak fotoğrafı üzerine pratik yapacağız. Telefonla katılmak da serbest.', 2, '17:30', 2, 'Moda Sahili, Kadıköy, İstanbul', 'Photography', 40.981, 29.025, true),
     ('q76hl2mu', 'demo', 'Kadıköy''de ev yapımı makarna atölyesi', 'Hamuru elde açıp üç farklı makarna şekli deneyeceğiz, ardından basit bir domates sosu ve pesto hazırlayıp birlikte yiyeceğiz. Malzemeleri katılımcılar arasında paylaşıyoruz.', 5, '19:00', 3, 'Kadıköy Çarşı, Kadıköy, İstanbul', 'Cooking', 40.9905, 29.0265, true),

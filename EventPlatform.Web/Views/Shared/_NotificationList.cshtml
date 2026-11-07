@@ -50,11 +50,11 @@
                     {
                         <div class="d-flex gap-2 mt-2" style="padding-left: 2.1rem;">
                             <form asp-controller="Friends" asp-action="Accept" asp-route-username="@n.ActorUsername" method="post" data-notif-action>
-                                <input type="hidden" name="returnUrl" value="/bildirimler" />
+                                <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Notifications")" />
                                 <button type="submit" class="btn btn-primary btn-sm">Kabul et</button>
                             </form>
                             <form asp-controller="Friends" asp-action="Decline" asp-route-username="@n.ActorUsername" method="post" data-notif-action>
-                                <input type="hidden" name="returnUrl" value="/bildirimler" />
+                                <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Notifications")" />
                                 <button type="submit" class="btn btn-outline-secondary btn-sm">Reddet</button>
                             </form>
                         </div>

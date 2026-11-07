@@ -10,7 +10,7 @@ namespace EventPlatform.Web.Controllers;
 
 // Kısayol adresleri. Asıl iş başka yerde:
 //   /Profile       -> kendi profil sayfam (/u/kullanici)
-//   /Profile/Edit  -> ayarlar (/ayarlar)
+//   /Profile/Edit  -> ayarlar (/settings)
 [Authorize]
 public class ProfileController : Controller
 {

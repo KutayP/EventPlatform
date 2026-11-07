@@ -73,6 +73,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Publicid)
                 .HasMaxLength(8)
                 .HasColumnName("publicid");
+            entity.Property(e => e.Issample)
+                .HasDefaultValue(false)
+                .HasColumnName("issample");
 
             entity.HasOne(d => d.Createdbyuser).WithMany(p => p.Events)
                 .HasForeignKey(d => d.Createdbyuserid)
